@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+Обработка работа с 6-ндфл
 
-## Getting Started
+## Начало работы
 
-First, run the development server:
+скачать архив, установить зависимости
+
+```bash
+npm install
+```
+
+запустить
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Открыть [http://localhost:3000](http://localhost:3000) чтобы увидеть результат.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Описание работы
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Загружаете xml файл отчета 6-ндфл из 1с, две кнопки позволяют
 
-## Learn More
+1. Приравнять исчисленный ндфл к удержанному во втором разделе и во всех справках 2-ндфл(если есть возврат налога, выпадет уведомление об этом)
+2. Перекинуть минусовой доход с одинаковым кодом дохода на другие месяца (начинает с самого первого месяца, если не хватает - выдает уведомление об этом)
 
-To learn more about Next.js, take a look at the following resources:
+Далее остается только загрузить отчет в 1с.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Технические сведения
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+# Стек
 
-## Deploy on Vercel
+TypeScript, Next.js, xml2js, talwindcss
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Структура
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Стандартная согласно документации next.js, готова к роутингу
