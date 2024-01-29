@@ -15,6 +15,7 @@ import {
   DrawerTrigger,
 } from "@/app/components/ui/drawer";
 import { Label } from "./components/ui/label";
+import { motion } from "framer-motion";
 
 const xml2js = require("xml2js");
 
@@ -108,6 +109,9 @@ async function updateXml(xml: any) {
     const svedDoh = spravDoh["СведДох"];
     const nalIsch = svedDoh[0]["СумИтНалПер"][0]["$"]["НалИсчисл"];
     const nalVoz = svedDoh[0]["СумИтНалПер"][0]["$"]["НалВозвр"];
+    svedDoh[0]["СумИтНалПер"][0]["$"]["НалПер"] !== undefined
+      ? (svedDoh[0]["СумИтНалПер"][0]["$"]["НалПер"] = nalIsch)
+      : null;
     console.log(nalIsch);
     if (nalVoz === 0 || nalVoz === undefined) {
       svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдерж"] = nalIsch;
@@ -129,6 +133,7 @@ async function updateXml(xml: any) {
 async function correctNegativeIncome(xml: any) {
   const obj = await parser.parseStringPromise(xml);
   const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
+
   console.log(spravDohs);
 
   spravDohs.forEach((spravDoh: any) => {
@@ -180,6 +185,51 @@ async function correctNegativeIncome(xml: any) {
       (svSumDoh: any) => parseFloat(svSumDoh["$"]["СумДоход"]) !== 0
     );
   });
+
+  const newXml = builder.buildObject(obj);
+  return newXml;
+}
+
+async function correctTax(xml: any) {
+  const obj = await parser.parseStringPromise(xml);
+  const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
+
+  let sumNalIschSec = 0;
+
+  console.log(spravDohs);
+
+  spravDohs.forEach((spravDoh: any) => {
+    const nalBase = spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалБаза"];
+    console.log(nalBase);
+    if (nalBase < 10) {
+      const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
+      toast.warning(
+        `Налоговая база меньше 10 для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
+      );
+      console.log(
+        `Налоговая база меньше 10 для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
+      );
+      // spravDoh = null;
+    }
+    if (nalBase === 0 || nalBase === undefined) {
+      const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
+      toast.warning(
+        `Не найдена налоговая база для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
+      );
+      console.log(
+        `Не найдена налоговая база для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
+      );
+      // spravDoh = null;
+    }
+    spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалИсчисл"] = Math.round(
+      nalBase * 0.13
+    );
+    sumNalIschSec += Math.round(nalBase * 0.13);
+  });
+
+  const header = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0];
+
+  header["$"]["СумНалИсч"] = sumNalIschSec;
 
   const newXml = builder.buildObject(obj);
   return newXml;
@@ -323,29 +373,39 @@ const Home = () => {
       `;
   return (
     <>
-      <svg
+      <motion.div
         style={{
           visibility: "hidden",
           position: "absolute",
+          left: "-100%",
+        }}
+        animate={{
+          left: ["-100%", "100%"],
+        }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
         }}
       >
-        <filter id="glass">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.01"
-            numOctaves="1"
-            result="warp"
-          />
-          <feDisplacementMap
-            xChannelSelector="R"
-            yChannelSelector="G"
-            scale="50"
-            in="SourceGraphic"
-            in2="warp"
-          />
-          <feGaussianBlur stdDeviation="1" />
-        </filter>
-      </svg>
+        <svg>
+          <filter id="glass">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.01"
+              numOctaves="1"
+              result="warp"
+            />
+            <feDisplacementMap
+              xChannelSelector="R"
+              yChannelSelector="G"
+              scale="50"
+              in="SourceGraphic"
+              in2="warp"
+            />
+            <feGaussianBlur stdDeviation="1" />
+          </filter>
+        </svg>
+      </motion.div>
 
       <div className="flex justify-center items-center h-screen overflow-hidden w-screen glass-effect flex-col">
         <Drawer>
@@ -361,7 +421,7 @@ const Home = () => {
             <DrawerHeader>
               <DrawerTitle>Объеденение</DrawerTitle>
               <DrawerDescription>
-                В данном разделе вы можете объединить 2-ндфл и 6-ндфл в один
+                В данном разделе вы можете объединить два 6-ндфл в один файл
                 файл
               </DrawerDescription>
               <Label htmlFor="file">Главный</Label>
@@ -469,19 +529,48 @@ const Home = () => {
         >
           <span className="text-white">Выровнять доходы</span>
         </Button>
+        <Button
+          className="z-10 m-4"
+          disabled={!file}
+          onClick={() => {
+            try {
+              correctTax(file).then((newXml) => {
+                console.log(newXml);
+                setFile(newXml);
+              });
+            } catch (e) {
+              toast.error("Ошибка при обработке файла");
+              console.log(e);
+            } finally {
+              toast.success("Файл обработан");
+            }
+          }}
+        >
+          <span className="text-white">Выровнять налог</span>
+        </Button>
         {file && (
-          <Button
-            className="z-10 m-4"
-            onClick={() => {
-              const blob = new Blob([file], { type: "text/plain" });
-              const link = document.createElement("a");
-              link.href = window.URL.createObjectURL(blob);
-              link.download = "ndfl.xml";
-              link.click();
-            }}
-          >
-            <span className="text-white">Скачать</span>
-          </Button>
+          <>
+            <Button
+              className="z-10 m-4"
+              onClick={() => {
+                const blob = new Blob([file], { type: "text/plain" });
+                const link = document.createElement("a");
+                link.href = window.URL.createObjectURL(blob);
+                link.download = "ndfl.xml";
+                link.click();
+              }}
+            >
+              <span className="text-white">Скачать</span>
+            </Button>
+            <Button
+              className="z-10 m-4"
+              onClick={() => {
+                setFile(null);
+              }}
+            >
+              <span className="text-white">Очистить</span>
+            </Button>
+          </>
         )}
         <Input className="z-10 w-1/4" type="file" onChange={handleFileChange} />
       </div>
