@@ -109,11 +109,11 @@ async function updateXml(xml: any) {
     const svedDoh = spravDoh["СведДох"];
     const nalIsch = svedDoh[0]["СумИтНалПер"][0]["$"]["НалИсчисл"];
     const nalVoz = svedDoh[0]["СумИтНалПер"][0]["$"]["НалВозвр"];
-    svedDoh[0]["СумИтНалПер"][0]["$"]["НалПер"] !== undefined
-      ? (svedDoh[0]["СумИтНалПер"][0]["$"]["НалПер"] = nalIsch)
+    svedDoh[0]["СумИтНалПер"][0]["$"]["НалПеречисл"] !== undefined
+      ? (svedDoh[0]["СумИтНалПер"][0]["$"]["НалПеречисл"] = nalIsch)
       : null;
     console.log(nalIsch);
-    if (nalVoz === 0 || nalVoz === undefined) {
+    if (nalVoz === undefined) {
       svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдерж"] = nalIsch;
       svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдержЛиш"] = 0;
       console.log(nalVoz);
@@ -137,18 +137,43 @@ async function correctNegativeIncome(xml: any) {
   console.log(spravDohs);
 
   spravDohs.forEach((spravDoh: any) => {
-    const dohVych = spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"];
+    let dohVych = spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"];
     const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"]; // Получаем ФИО
+
+    let groupedDohVych: any[] = [];
+    dohVych.forEach((svSumDoh: any) => {
+      const month = svSumDoh["$"]["Месяц"];
+      const kodDohod = svSumDoh["$"]["КодДоход"];
+      const sumDohod = parseFloat(svSumDoh["$"]["СумДоход"]);
+
+      const existingEntry = groupedDohVych.find(
+        (entry: any) =>
+          entry["$"]["Месяц"] === month && entry["$"]["КодДоход"] === kodDohod
+      );
+
+      if (existingEntry) {
+        existingEntry["$"]["СумДоход"] = (
+          parseFloat(existingEntry["$"]["СумДоход"]) + sumDohod
+        ).toFixed(2);
+      } else {
+        groupedDohVych.push(svSumDoh);
+      }
+    });
+
+    // Заменяем исходный массив новым
+    spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"] = groupedDohVych;
 
     let hasNegative;
     do {
       hasNegative = false;
-      dohVych.forEach((svSumDoh: any) => {
+      groupedDohVych.forEach((svSumDoh: any) => {
+        // Используем groupedDohVych вместо dohVych
         const sumDohod = parseFloat(svSumDoh["$"]["СумДоход"]);
         const kodDohod = svSumDoh["$"]["КодДоход"];
 
         if (sumDohod < 0) {
-          const positiveIncomeIndex = dohVych.findIndex(
+          const positiveIncomeIndex = groupedDohVych.findIndex(
+            // Используем groupedDohVych вместо dohVych
             (doh: any) =>
               doh["$"]["КодДоход"] === kodDohod &&
               parseFloat(doh["$"]["СумДоход"]) > 0
@@ -156,13 +181,13 @@ async function correctNegativeIncome(xml: any) {
 
           if (positiveIncomeIndex !== -1) {
             const newSumDohod =
-              parseFloat(dohVych[positiveIncomeIndex]["$"]["СумДоход"]) +
+              parseFloat(groupedDohVych[positiveIncomeIndex]["$"]["СумДоход"]) + // Используем groupedDohVych вместо dohVych
               sumDohod;
-            dohVych[positiveIncomeIndex]["$"]["СумДоход"] =
+            groupedDohVych[positiveIncomeIndex]["$"]["СумДоход"] = // Используем groupedDohVych вместо dohVych
               newSumDohod.toFixed(2);
 
             if (newSumDohod === 0) {
-              dohVych.splice(positiveIncomeIndex, 1);
+              groupedDohVych.splice(positiveIncomeIndex, 1); // Используем groupedDohVych вместо dohVych
             }
 
             svSumDoh["$"]["СумДоход"] = "0";
@@ -181,7 +206,8 @@ async function correctNegativeIncome(xml: any) {
     } while (hasNegative);
 
     // Удалить нулевые строки
-    spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"] = dohVych.filter(
+    spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"] = groupedDohVych.filter(
+      // Используем groupedDohVych вместо dohVych
       (svSumDoh: any) => parseFloat(svSumDoh["$"]["СумДоход"]) !== 0
     );
   });
@@ -189,7 +215,6 @@ async function correctNegativeIncome(xml: any) {
   const newXml = builder.buildObject(obj);
   return newXml;
 }
-
 async function correctTax(xml: any) {
   const obj = await parser.parseStringPromise(xml);
   const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
@@ -549,7 +574,7 @@ const Home = () => {
           <span className="text-white">Выровнять налог</span>
         </Button>
         {file && (
-          <>
+          <div className="grid grid-cols-3 ">
             <Button
               className="z-10 m-4"
               onClick={() => {
@@ -564,13 +589,30 @@ const Home = () => {
             </Button>
             <Button
               className="z-10 m-4"
+              disabled={!file}
+              onClick={() => {
+                navigator.clipboard
+                  .writeText(file)
+                  .then(() => {
+                    toast.success("Текст отчета скопирован в буфер обмена");
+                  })
+                  .catch((err) => {
+                    toast.error("Ошибка при копировании текста отчета");
+                    console.error("Failed to copy text: ", err);
+                  });
+              }}
+            >
+              <span className="text-white">Скопировать отчет</span>
+            </Button>
+            <Button
+              className="z-10 m-4"
               onClick={() => {
                 setFile(null);
               }}
             >
               <span className="text-white">Очистить</span>
             </Button>
-          </>
+          </div>
         )}
         <Input className="z-10 w-1/4" type="file" onChange={handleFileChange} />
       </div>
