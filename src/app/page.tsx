@@ -16,254 +16,102 @@ import {
 } from "@/app/components/ui/drawer";
 import { Label } from "./components/ui/label";
 import { motion } from "framer-motion";
-
-const xml2js = require("xml2js");
-
-const builder = new xml2js.Builder({
-  xmldec: { version: "1.0", encoding: "windows-1251" },
-});
-const parser = new xml2js.Parser();
-
-async function mergeXmlFiles(xml1: any, xml2: any) {
-  const result1 = await parser.parseStringPromise(xml1);
-  const result2 = await parser.parseStringPromise(xml2);
-
-  const spravDox1 = result1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
-  const spravDox2 = result2["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
-
-  const lastNomSpr = parseInt(spravDox1[spravDox1.length - 1]["$"]["НомСпр"]);
-
-  spravDox2.forEach((spravDox: any, index: any) => {
-    spravDox["$"]["НомСпр"] = (lastNomSpr + index + 1).toString();
-  });
-
-  const combinedSpravDox = spravDox1.concat(spravDox2);
-
-  result1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"] = combinedSpravDox;
-
-  const sumNalIsch1 =
-    result1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
-      "СумНалИсч"
-    ];
-  const sumNalIsch2 =
-    result2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
-      "СумНалИсч"
-    ];
-
-  const sumNalUder1 =
-    result1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
-      "СумНалУдерж"
-    ];
-  const sumNalUder2 =
-    result2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
-      "СумНалУдерж"
-    ];
-
-  const sumNalVoz1 =
-    result1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
-      "СумНалВозвр"
-    ];
-  const sumNalVoz2 =
-    result2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
-      "СумНалВозвр"
-    ];
-
-  result1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
-    "СумНалИсч"
-  ] = +sumNalIsch1 + +sumNalIsch2;
-  result1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
-    "СумНалУдерж"
-  ] = +sumNalUder1 + +sumNalUder2;
-
-  const xml = builder.buildObject(result1);
-  return xml;
-}
-
-async function updateXml(xml: any) {
-  console.log("started");
-  const obj = await parser.parseStringPromise(xml);
-
-  const header = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0];
-
-  const sumNalIsch = header["$"]["СумНалИсч"];
-  const sumNalVoz = header["$"]["СумНалВозвр"];
-
-  if (sumNalVoz === "0") {
-    header["$"]["СумНалУдерж"] = sumNalIsch;
-    header["$"]["СумНалНеУдерж"] = 0;
-    header["$"]["СумНалИзлУдерж"] = 0;
-  } else {
-    toast.warning(
-      "Сумма налога к возврату не равна нулю, проверьте удержанный налог!"
-    );
-    header["$"]["СумНалУдерж"] = +sumNalIsch + +sumNalVoz;
-    header["$"]["СумНалНеУдерж"] = 0;
-    header["$"]["СумНалИзлУдерж"] = 0;
-  }
-
-  const spravDohs = obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
-
-  console.log(spravDohs);
-
-  spravDohs.forEach((spravDoh: any) => {
-    const svedDoh = spravDoh["СведДох"];
-    const nalIsch = svedDoh[0]["СумИтНалПер"][0]["$"]["НалИсчисл"];
-    const nalVoz = svedDoh[0]["СумИтНалПер"][0]["$"]["НалВозвр"];
-    svedDoh[0]["СумИтНалПер"][0]["$"]["НалПеречисл"] !== undefined
-      ? (svedDoh[0]["СумИтНалПер"][0]["$"]["НалПеречисл"] = nalIsch)
-      : null;
-    console.log(nalIsch);
-    if (nalVoz === undefined) {
-      svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдерж"] = nalIsch;
-      svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдержЛиш"] = 0;
-      console.log(nalVoz);
-    } else {
-      toast.warning(
-        "Сумма налога к возврату не равна нулю, проверьте удержанный налог в 2-ндфл!"
-      );
-      svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдерж"] = +nalIsch + +nalVoz;
-      svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдержЛиш"] = 0;
-    }
-  });
-
-  const newXml = builder.buildObject(obj);
-  return newXml;
-}
-
-async function correctNegativeIncome(xml: any) {
-  const obj = await parser.parseStringPromise(xml);
-  const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
-
-  console.log(spravDohs);
-
-  spravDohs.forEach((spravDoh: any) => {
-    let dohVych = spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"];
-    const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"]; // Получаем ФИО
-
-    let groupedDohVych: any[] = [];
-    dohVych.forEach((svSumDoh: any) => {
-      const month = svSumDoh["$"]["Месяц"];
-      const kodDohod = svSumDoh["$"]["КодДоход"];
-      const sumDohod = parseFloat(svSumDoh["$"]["СумДоход"]);
-
-      const existingEntry = groupedDohVych.find(
-        (entry: any) =>
-          entry["$"]["Месяц"] === month && entry["$"]["КодДоход"] === kodDohod
-      );
-
-      if (existingEntry) {
-        existingEntry["$"]["СумДоход"] = (
-          parseFloat(existingEntry["$"]["СумДоход"]) + sumDohod
-        ).toFixed(2);
-      } else {
-        groupedDohVych.push(svSumDoh);
-      }
-    });
-
-    // Заменяем исходный массив новым
-    spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"] = groupedDohVych;
-
-    let hasNegative;
-    do {
-      hasNegative = false;
-      groupedDohVych.forEach((svSumDoh: any) => {
-        // Используем groupedDohVych вместо dohVych
-        const sumDohod = parseFloat(svSumDoh["$"]["СумДоход"]);
-        const kodDohod = svSumDoh["$"]["КодДоход"];
-
-        if (sumDohod < 0) {
-          const positiveIncomeIndex = groupedDohVych.findIndex(
-            // Используем groupedDohVych вместо dohVych
-            (doh: any) =>
-              doh["$"]["КодДоход"] === kodDohod &&
-              parseFloat(doh["$"]["СумДоход"]) > 0
-          );
-
-          if (positiveIncomeIndex !== -1) {
-            const newSumDohod =
-              parseFloat(groupedDohVych[positiveIncomeIndex]["$"]["СумДоход"]) + // Используем groupedDohVych вместо dohVych
-              sumDohod;
-            groupedDohVych[positiveIncomeIndex]["$"]["СумДоход"] = // Используем groupedDohVych вместо dohVych
-              newSumDohod.toFixed(2);
-
-            if (newSumDohod === 0) {
-              groupedDohVych.splice(positiveIncomeIndex, 1); // Используем groupedDohVych вместо dohVych
-            }
-
-            svSumDoh["$"]["СумДоход"] = "0";
-            hasNegative = true;
-          } else {
-            // Если не найдено соответствующего кода дохода, выводим ФИО в консоль
-            console.log(
-              `Не найден код дохода для ${fio["Фамил"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-            );
-            toast.warning(
-              `Не найден код дохода для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-            );
-          }
-        }
-      });
-    } while (hasNegative);
-
-    // Удалить нулевые строки
-    spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"] = groupedDohVych.filter(
-      // Используем groupedDohVych вместо dohVych
-      (svSumDoh: any) => parseFloat(svSumDoh["$"]["СумДоход"]) !== 0
-    );
-  });
-
-  const newXml = builder.buildObject(obj);
-  return newXml;
-}
-async function correctTax(xml: any) {
-  const obj = await parser.parseStringPromise(xml);
-  const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
-
-  let sumNalIschSec = 0;
-
-  console.log(spravDohs);
-
-  spravDohs.forEach((spravDoh: any) => {
-    const nalBase = spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалБаза"];
-    console.log(nalBase);
-    if (nalBase < 10) {
-      const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
-      toast.warning(
-        `Налоговая база меньше 10 для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-      );
-      console.log(
-        `Налоговая база меньше 10 для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-      );
-      // spravDoh = null;
-    }
-    if (nalBase === 0 || nalBase === undefined) {
-      const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
-      toast.warning(
-        `Не найдена налоговая база для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-      );
-      console.log(
-        `Не найдена налоговая база для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-      );
-      // spravDoh = null;
-    }
-    spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалИсчисл"] = Math.round(
-      nalBase * 0.13
-    );
-    sumNalIschSec += Math.round(nalBase * 0.13);
-  });
-
-  const header = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0];
-
-  header["$"]["СумНалИсч"] = sumNalIschSec;
-
-  const newXml = builder.buildObject(obj);
-  return newXml;
-}
+import { useMotionValue, useSpring, useTransform } from "framer-motion";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  mergeXmlFiles,
+  updateXml,
+  correctNegativeIncome,
+  correctTax,
+  setNumCorr,
+  nullCorr,
+  kvartal,
+  processXmlData,
+} from "@/utils/functions";
+import { ColumnDef } from "@tanstack/react-table";
+import DataTableDemo from "@/components/ui/tenStackTable";
 
 const Home = () => {
   const [file, setFile] = React.useState<any>(null);
+  const [files, setFiles] = React.useState<any>([null]);
+  const [tableData, setTableData] = React.useState<any[]>([]);
   const [firstObj, setFirstObj] = React.useState<any>(null);
   const [secondObj, setSecondObj] = React.useState<any>(null);
+  const [numCorrerction, setNumCorrection] = React.useState<string>("0");
+  const constRef = React.useRef(null);
+  const [uvedCSV, setUvedCSV] = React.useState<any>(null);
+  const [filterOptions, setFilterOptions] = React.useState<any>(null);
+
+  React.useMemo(() => {
+    const kppSet = new Set(tableData.map((item) => item.KPP));
+    const oktmoSet = new Set(tableData.map((item) => item.OKTMO));
+    const periodSet = new Set(tableData.map((item) => item["KOD PERIODA"]));
+
+    // Преобразование Set обратно в массив
+    const kppOptions = Array.from(kppSet);
+    const oktmoOptions = Array.from(oktmoSet);
+    const periodOptions = Array.from(periodSet);
+
+    setFilterOptions({
+      KPP: kppOptions,
+      OKTMO: oktmoOptions,
+      "KOD PERIODA": periodOptions,
+    });
+  }, [tableData]);
+
+  const x = useMotionValue(
+    Math.random() * (typeof window !== "undefined" ? window.innerWidth : 0)
+  ); // начальная позиция x
+  const y = useMotionValue(
+    Math.random() * (typeof window !== "undefined" ? window.innerHeight : 0)
+  ); // начальная позиция y
+  const vx = useMotionValue((Math.random() - 0.5) * 10); // скорость и направление по оси x
+  const vy = useMotionValue((Math.random() - 0.5) * 10); // скорость и направление по оси y
+  const rotation = useMotionValue(Math.random() * 360); // начальное положение вращения
+  const rotationSpeed = useMotionValue((Math.random() - 0.5) * 1); // скорость вращения
+
+  React.useEffect(() => {
+    const unsubscribeX = x.onChange((currentX) => {
+      // Если достигнута граница экрана, меняем направление движения
+      if (currentX < -window.innerWidth / 2 || currentX > window.innerWidth) {
+        vx.set(-vx.get());
+      }
+    });
+
+    const unsubscribeY = y.onChange((currentY) => {
+      // Если достигнута граница экрана, меняем направление движения
+      if (
+        currentY < -window.innerHeight / 2 ||
+        currentY > window.innerHeight / 2
+      ) {
+        vy.set(-vy.get());
+      }
+    });
+
+    return () => {
+      unsubscribeX();
+      unsubscribeY();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      x.set(x.get() + vx.get());
+      y.set(y.get() + vy.get());
+      rotation.set((rotation.get() + rotationSpeed.get()) % 360);
+    }, 1000 / 60); // обновляем координаты и вращение 60 раз в секунду
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.item(0);
@@ -279,123 +127,53 @@ const Home = () => {
     }
   };
 
-  const xmlFileExample = `<?xml version="1.0" encoding="windows-1251"?>
-<Файл xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ИдФайл="NO_NDFL6.2_5403_5403_5403350198540301001_20240117_5e7d2d7c-2951-4221-8779-c5ae4f974982" ВерсПрог="1С:ЗГУ КОРП 3.1.27.148" ВерсФорм="5.03">
-	<Документ КНД="1151100" ДатаДок="17.01.2024" Период="34" ОтчетГод="2023" КодНО="5403" НомКорр="0" ПоМесту="214">
-		<СвНП ОКТМО="50701000" Тлф="(383) 352-31-10">
-			<НПЮЛ НаимОрг="МБДОУ д/с № 54" ИННЮЛ="5403350198" КПП="540301001"/>
-		</СвНП>
-		<Подписант ПрПодп="1">
-			<ФИО Фамилия="Пануровская" Имя="Анна" Отчество="Анатольевна"/>
-		</Подписант>
-		<НДФЛ6.2>
-			<ОбязНА КБК="18210102010011000110" СумНалУд="2585091" СумНалВоз="0">
-				<СведСумНалУд СумНал1Срок="630359" СумНал2Срок="662970" СумНал3Срок="633105" СумНал4Срок="658657"/>
-			</ОбязНА>
-			<РасчСумНал Ставка="13" КБК="18210102010011000110" СумНачислНач="51883463.74" СумНачислДив="0" СумНачислДог="51883463.74" СумНачислРаб="0" СумНачислКвал="0" КолФЛ="132" КолКвал="0" СумВыч="1749809.92" СумНалИсч="6517373" СумНалИсчДив="0" СумНалИсчКвал="0" СумФикс="0" СумНалПриб="0" СумНалУдерж="651737" СумНалНеУдерж="0" СумНалИзлУдерж="0" СумНалВозвр="1"/>
-			<СправДох НомСпр="1" НомКорр="00">
-				<ПолучДох ИННФЛ="540309840220" Статус="1" ДатаРожд="17.08.1955" Гражд="643">
-					<ФИО Фамилия="Акзамова" Имя="Галина" Отчество="Александровна"/>
-					<УдЛичнФЛ КодУдЛичн="21" СерНомДок="50 01 868797"/>
-				</ПолучДох>
-				<СведДох Ставка="13" КБК="18210102010011000110">
-					<СумИтНалПер СумДохОбщ="364710.95" НалБаза="364710.95" НалИсчисл="47412" НалУдерж="30000" АвансПлатФикс="0" СумНалПрибЗач="0" НалУдержЛиш="0"/>
-					<ДохВыч>
-						<СвСумДох Месяц="08" КодДоход="2010" СумДоход="-88207.83"/>
-						<СвСумДох Месяц="09" КодДоход="2000" СумДоход="115115.60"/>
-						<СвСумДох Месяц="10" КодДоход="2000" СумДоход="97860.46"/>
-						<СвСумДох Месяц="11" КодДоход="2000" СумДоход="39279.90"/>
-						<СвСумДох Месяц="11" КодДоход="2013" СумДоход="24247.16"/>
-					</ДохВыч>
-				</СведДох>
-			</СправДох>
-      <СправДох НомСпр="119" НомКорр="00">
-				<ПолучДох ИННФЛ="540311710901" Статус="1" ДатаРожд="02.03.1961" Гражд="643">
-					<ФИО Фамилия="Хомич" Имя="Василий" Отчество="Петрович"/>
-					<УдЛичнФЛ КодУдЛичн="21" СерНомДок="09 14 456681"/>
-				</ПолучДох>
-				<СведДох Ставка="13" КБК="18210102010011000110">
-					<СумИтНалПер СумДохОбщ="422629.09" НалБаза="422629.09" НалИсчисл="54942" НалУдерж="512312" АвансПлатФикс="0" СумНалПрибЗач="0" НалУдержЛиш="0"/>
-					<ДохВыч>
-						<СвСумДох Месяц="01" КодДоход="2000" СумДоход="33735.78"/>
-						<СвСумДох Месяц="02" КодДоход="2000" СумДоход="-130010.04"/>
-						<СвСумДох Месяц="03" КодДоход="2000" СумДоход="32634.79"/>
-						<СвСумДох Месяц="04" КодДоход="2000" СумДоход="31988.48"/>
-						<СвСумДох Месяц="05" КодДоход="2000" СумДоход="33257.88"/>
-						<СвСумДох Месяц="06" КодДоход="2000" СумДоход="33384.79"/>
-						<СвСумДох Месяц="07" КодДоход="2000" СумДоход="31988.48"/>
-						<СвСумДох Месяц="07" КодДоход="2012" СумДоход="30800.84"/>
-						<СвСумДох Месяц="08" КодДоход="2000" СумДоход="18655.20"/>
-						<СвСумДох Месяц="09" КодДоход="2000" СумДоход="30513.08"/>
-						<СвСумДох Месяц="10" КодДоход="2000" СумДоход="39102.89"/>
-						<СвСумДох Месяц="11" КодДоход="2000" СумДоход="39171.90"/>
-						<СвСумДох Месяц="12" КодДоход="2000" СумДоход="37384.94"/>
-					</ДохВыч>
-				</СведДох>
-			</СправДох>
-      </НДФЛ6.2>
-      </Документ>
-      </Файл>
-      `;
+  const colors2 = [
+    "#000000",
+    "#ff0000",
+    "#800000",
+    "#ff0000",
+    "#800000",
+    "#000000",
+    "#ff0000",
+  ];
 
-  const xmlFileExample2 = `<?xml version="1.0" encoding="windows-1251"?>
-<Файл xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ИдФайл="NO_NDFL6.2_5403_5403_5403350198540301001_20240117_5e7d2d7c-2951-4221-8779-c5ae4f974982" ВерсПрог="1С:ЗГУ КОРП 3.1.27.148" ВерсФорм="5.03">
-	<Документ КНД="1151100" ДатаДок="17.01.2024" Период="34" ОтчетГод="2023" КодНО="5403" НомКорр="0" ПоМесту="214">
-		<СвНП ОКТМО="50701000" Тлф="(383) 352-31-10">
-			<НПЮЛ НаимОрг="МБДОУ д/с № 54" ИННЮЛ="5403350198" КПП="540301001"/>
-		</СвНП>
-		<Подписант ПрПодп="1">
-			<ФИО Фамилия="Пануровская" Имя="Анна" Отчество="Анатольевна"/>
-		</Подписант>
-		<НДФЛ6.2>
-			<ОбязНА КБК="18210102010011000110" СумНалУд="2585091" СумНалВоз="0">
-				<СведСумНалУд СумНал1Срок="630359" СумНал2Срок="662970" СумНал3Срок="633105" СумНал4Срок="658657"/>
-			</ОбязНА>
-			<РасчСумНал Ставка="13" КБК="18210102010011000110" СумНачислНач="51883463.74" СумНачислДив="0" СумНачислДог="51883463.74" СумНачислРаб="0" СумНачислКвал="0" КолФЛ="132" КолКвал="0" СумВыч="1749809.92" СумНалИсч="6517373" СумНалИсчДив="0" СумНалИсчКвал="0" СумФикс="0" СумНалПриб="0" СумНалУдерж="651737" СумНалНеУдерж="0" СумНалИзлУдерж="0" СумНалВозвр="1"/>
-			<СправДох НомСпр="1" НомКорр="00">
-				<ПолучДох ИННФЛ="540309840220" Статус="1" ДатаРожд="17.08.1955" Гражд="643">
-					<ФИО Фамилия="Акзамова" Имя="Галина" Отчество="Александровна"/>
-					<УдЛичнФЛ КодУдЛичн="21" СерНомДок="50 01 868797"/>
-				</ПолучДох>
-				<СведДох Ставка="13" КБК="18210102010011000110">
-					<СумИтНалПер СумДохОбщ="364710.95" НалБаза="364710.95" НалИсчисл="47412" НалУдерж="30000" АвансПлатФикс="0" СумНалПрибЗач="0" НалУдержЛиш="0"/>
-					<ДохВыч>
-						<СвСумДох Месяц="08" КодДоход="2010" СумДоход="-88207.83"/>
-						<СвСумДох Месяц="09" КодДоход="2000" СумДоход="115115.60"/>
-						<СвСумДох Месяц="10" КодДоход="2000" СумДоход="97860.46"/>
-						<СвСумДох Месяц="11" КодДоход="2000" СумДоход="39279.90"/>
-						<СвСумДох Месяц="11" КодДоход="2013" СумДоход="24247.16"/>
-					</ДохВыч>
-				</СведДох>
-			</СправДох>
-      <СправДох НомСпр="119" НомКорр="00">
-				<ПолучДох ИННФЛ="540311710901" Статус="1" ДатаРожд="02.03.1961" Гражд="643">
-					<ФИО Фамилия="Хомич" Имя="Василий" Отчество="Петрович"/>
-					<УдЛичнФЛ КодУдЛичн="21" СерНомДок="09 14 456681"/>
-				</ПолучДох>
-				<СведДох Ставка="13" КБК="18210102010011000110">
-					<СумИтНалПер СумДохОбщ="422629.09" НалБаза="422629.09" НалИсчисл="54942" НалУдерж="512312" АвансПлатФикс="0" СумНалПрибЗач="0" НалУдержЛиш="0"/>
-					<ДохВыч>
-						<СвСумДох Месяц="01" КодДоход="2000" СумДоход="33735.78"/>
-						<СвСумДох Месяц="02" КодДоход="2000" СумДоход="-130010.04"/>
-						<СвСумДох Месяц="03" КодДоход="2000" СумДоход="32634.79"/>
-						<СвСумДох Месяц="04" КодДоход="2000" СумДоход="31988.48"/>
-						<СвСумДох Месяц="05" КодДоход="2000" СумДоход="33257.88"/>
-						<СвСумДох Месяц="06" КодДоход="2000" СумДоход="33384.79"/>
-						<СвСумДох Месяц="07" КодДоход="2000" СумДоход="31988.48"/>
-						<СвСумДох Месяц="07" КодДоход="2012" СумДоход="30800.84"/>
-						<СвСумДох Месяц="08" КодДоход="2000" СумДоход="18655.20"/>
-						<СвСумДох Месяц="09" КодДоход="2000" СумДоход="30513.08"/>
-						<СвСумДох Месяц="10" КодДоход="2000" СумДоход="39102.89"/>
-						<СвСумДох Месяц="11" КодДоход="2000" СумДоход="39171.90"/>
-						<СвСумДох Месяц="12" КодДоход="2000" СумДоход="37384.94"/>
-					</ДохВыч>
-				</СведДох>
-			</СправДох>
-      </НДФЛ6.2>
-      </Документ>
-      </Файл>
-      `;
+  const colors3 = ["#000000", "#800000", "#ff0000", "#800000", "#000000"];
+
+  const colors4 = [
+    "#800000",
+    "#ff0000",
+    "#800000",
+    "#000000",
+    "#ff0000",
+    "#800000",
+    "#ff0000",
+    "#000000",
+    "#800000",
+  ];
+
+  const colors5 = [
+    "#ff0000",
+    "#800000",
+    "#000000",
+    "#ff0000",
+    "#800000",
+    "#ff0000",
+    "#000000",
+    "#ff0000",
+  ];
+
+  const colors6 = [
+    "#ff0000",
+    "#000000",
+    "#800000",
+    "#000000",
+    "#ff0000",
+    "#800000",
+    "#ff0000",
+  ];
+
+  const colorPatterns = [colors2, colors3, colors4, colors5, colors6];
+  const text = "ЗАГРУЗИТЕФАЙЛ";
   return (
     <>
       <motion.div
@@ -421,6 +199,7 @@ const Home = () => {
               result="warp"
             />
             <feDisplacementMap
+              id="displacement"
               xChannelSelector="R"
               yChannelSelector="G"
               scale="50"
@@ -432,12 +211,269 @@ const Home = () => {
         </svg>
       </motion.div>
 
-      <div className="flex justify-center items-center h-screen overflow-hidden w-screen glass-effect flex-col">
+      <motion.div
+        ref={constRef}
+        className="flex justify-center items-center h-screen overflow-hidden w-screen glass-effect flex-col"
+      >
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Blobs key={i} />
+        ))}
+
+        {/* <h1 className="">6-НДФЛ</h1> */}
+        {file ? (
+          <div className="grid grid-cols-3 ">
+            <motion.div
+              drag
+              dragConstraints={constRef}
+              className=" justify-center flex"
+            >
+              <Button
+                className="z-10 m-4"
+                disabled={!file}
+                onClick={() => {
+                  try {
+                    updateXml(file).then((newXml) => {
+                      console.log(newXml);
+                      setFile(newXml);
+                    });
+                  } catch (e) {
+                    toast.error("Ошибка при обработке файла");
+                    console.log(e);
+                  } finally {
+                    toast.success("Файл обработан");
+                  }
+                }}
+              >
+                <span className="text-white">Выровнять удержанный</span>
+              </Button>
+            </motion.div>
+            <motion.div
+              drag
+              dragConstraints={constRef}
+              className=" justify-center flex"
+            >
+              <Button
+                className="z-10 m-4"
+                disabled={!file}
+                onClick={() => {
+                  try {
+                    correctNegativeIncome(file).then((newXml) => {
+                      console.log(newXml);
+                      setFile(newXml);
+                    });
+                  } catch (e) {
+                    toast.error("Ошибка при обработке файла");
+                    console.log(e);
+                  } finally {
+                    toast.success("Файл обработан");
+                  }
+                }}
+              >
+                <span className="text-white">Выровнять доходы</span>
+              </Button>
+            </motion.div>
+            <motion.div
+              drag
+              dragConstraints={constRef}
+              className=" justify-center flex"
+            >
+              <Button
+                className="z-10 m-4"
+                disabled={!file}
+                onClick={() => {
+                  try {
+                    correctTax(file).then((newXml) => {
+                      console.log(newXml);
+                      setFile(newXml);
+                    });
+                  } catch (e) {
+                    toast.error("Ошибка при обработке файла");
+                    console.log(e);
+                  } finally {
+                    toast.success("Файл обработан");
+                  }
+                }}
+              >
+                <span className="text-white">Выровнять налог</span>
+              </Button>
+            </motion.div>
+            <motion.div
+              drag
+              dragConstraints={constRef}
+              className=" justify-center flex"
+            >
+              <Button
+                className="z-10 m-4"
+                onClick={() => {
+                  const blob = new Blob([file], { type: "text/plain" });
+                  const link = document.createElement("a");
+                  link.href = window.URL.createObjectURL(blob);
+                  link.download = "ndfl.xml";
+                  link.click();
+                }}
+              >
+                <span className="text-white">Скачать</span>
+              </Button>
+            </motion.div>
+            <motion.div
+              drag
+              dragConstraints={constRef}
+              className=" justify-center flex"
+            >
+              <Button
+                className="z-10 m-4"
+                disabled={!file}
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(file)
+                    .then(() => {
+                      toast.success("Текст отчета скопирован в буфер обмена");
+                    })
+                    .catch((err) => {
+                      toast.error("Ошибка при копировании текста отчета");
+                      console.error("Failed to copy text: ", err);
+                    });
+                }}
+              >
+                <span className="text-white">Скопировать отчет</span>
+              </Button>
+            </motion.div>
+            <motion.div
+              drag
+              dragConstraints={constRef}
+              className=" justify-center flex"
+            >
+              <Button
+                className="z-10 m-4"
+                onClick={() => {
+                  setFile(null);
+                }}
+              >
+                <span className="text-white">Очистить</span>
+              </Button>
+            </motion.div>
+            <motion.div
+              drag
+              dragConstraints={constRef}
+              className=" justify-center flex"
+            >
+              <Button
+                className="z-10 m-4"
+                onClick={() => {
+                  nullCorr(file).then((newXml) => {
+                    console.log(newXml);
+                    setFile(newXml);
+                  });
+                }}
+              >
+                Аннулирующий
+              </Button>
+            </motion.div>
+            <Drawer>
+              <DrawerTrigger>
+                <motion.div
+                  drag
+                  dragConstraints={constRef}
+                  className=" justify-center flex"
+                >
+                  <Button className="z-10 m-4" asChild>
+                    <span className="text-white">Проставить корректировку</span>
+                  </Button>
+                </motion.div>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerClose>
+                  <span className="text-white">Закрыть</span>
+                </DrawerClose>
+                <DrawerHeader>
+                  <DrawerTitle>Корректировка</DrawerTitle>
+                  <DrawerDescription>
+                    В данном разделе вы можете проставить корректировку
+                  </DrawerDescription>
+                </DrawerHeader>
+                <Input
+                  placeholder="Введите номер корректировки"
+                  className="w-1/2"
+                  onChange={(e) => {
+                    setNumCorrection(e.target.value);
+                  }}
+                  type="text"
+                />
+                <Button
+                  className="z-10 m-4"
+                  disabled={!file}
+                  onClick={() => {
+                    try {
+                      setNumCorr(file, numCorrerction).then((newXml) => {
+                        console.log(newXml);
+                        setFile(newXml);
+                      });
+                    } catch (e) {
+                      toast.error("Ошибка при обработке файла");
+                      console.log(e);
+                    } finally {
+                      toast.success("Файл обработан");
+                    }
+                  }}
+                >
+                  <span className="text-white">Проставить</span>
+                </Button>
+              </DrawerContent>
+            </Drawer>
+            <motion.div drag dragConstraints={constRef}>
+              <Button
+                className="z-10 m-4"
+                onClick={() => {
+                  try {
+                    kvartal(file).then((newXml) => {
+                      console.log(newXml);
+                      setFile(newXml);
+                    });
+                  } catch (e) {
+                    toast.error("Ошибка при обработке файла");
+                    console.log(e);
+                  } finally {
+                    toast.success("Файл обработан");
+                  }
+                }}
+              >
+                <span className="text-white">Квартальный</span>
+              </Button>
+            </motion.div>
+          </div>
+        ) : (
+          <div className="flex justify-center items-top absolute top-40">
+            {[...text].map((char, i) => (
+              <motion.h1
+                style={{
+                  fontFamily: "Comic Sans MS",
+                }}
+                className=" text-9xl font-extrabold "
+                key={i}
+                animate={{
+                  color: colorPatterns[i % colorPatterns.length],
+                }}
+                drag
+                dragConstraints={constRef}
+                transition={{
+                  duration: 2,
+                  ease: "easeInOut",
+                  loop: Infinity,
+                  repeat: Infinity,
+                }}
+              >
+                {char}
+              </motion.h1>
+            ))}
+          </div>
+        )}
         <Drawer>
           <DrawerTrigger>
-            <Button className="z-10 m-4" asChild>
-              <span className="text-white">Объединить отчеты</span>
-            </Button>
+            <motion.div drag dragConstraints={constRef}>
+              <Button className="z-10 m-4" asChild>
+                <span className="text-white">Объединить отчеты</span>
+              </Button>
+            </motion.div>
           </DrawerTrigger>
           <DrawerContent>
             <DrawerClose>
@@ -509,113 +545,107 @@ const Home = () => {
             </DrawerHeader>
           </DrawerContent>
         </Drawer>
-        <Blobs key={1} />
-        <Blobs key={2} />
-        <Blobs key={3} />
-        <Blobs key={4} />
-        <Blobs key={5} />
-        {/* <h1 className="">6-НДФЛ</h1> */}
-
-        <Button
-          className="z-10 m-4"
-          disabled={!file}
-          onClick={() => {
-            try {
-              updateXml(file).then((newXml) => {
-                console.log(newXml);
-                setFile(newXml);
-              });
-            } catch (e) {
-              toast.error("Ошибка при обработке файла");
-              console.log(e);
-            } finally {
-              toast.success("Файл обработан");
-            }
-          }}
-        >
-          <span className="text-white">Выровнять удержанный</span>
-        </Button>
-        <Button
-          className="z-10 m-4"
-          disabled={!file}
-          onClick={() => {
-            try {
-              correctNegativeIncome(file).then((newXml) => {
-                console.log(newXml);
-                setFile(newXml);
-              });
-            } catch (e) {
-              toast.error("Ошибка при обработке файла");
-              console.log(e);
-            } finally {
-              toast.success("Файл обработан");
-            }
-          }}
-        >
-          <span className="text-white">Выровнять доходы</span>
-        </Button>
-        <Button
-          className="z-10 m-4"
-          disabled={!file}
-          onClick={() => {
-            try {
-              correctTax(file).then((newXml) => {
-                console.log(newXml);
-                setFile(newXml);
-              });
-            } catch (e) {
-              toast.error("Ошибка при обработке файла");
-              console.log(e);
-            } finally {
-              toast.success("Файл обработан");
-            }
-          }}
-        >
-          <span className="text-white">Выровнять налог</span>
-        </Button>
-        {file && (
-          <div className="grid grid-cols-3 ">
-            <Button
-              className="z-10 m-4"
-              onClick={() => {
-                const blob = new Blob([file], { type: "text/plain" });
-                const link = document.createElement("a");
-                link.href = window.URL.createObjectURL(blob);
-                link.download = "ndfl.xml";
-                link.click();
+        <Drawer>
+          <DrawerTrigger>
+            <motion.div drag dragConstraints={constRef}>
+              <Button className="z-10 m-4" asChild>
+                <span className="text-white">Уведомления</span>
+              </Button>
+            </motion.div>
+          </DrawerTrigger>
+          <DrawerContent>
+            <DrawerClose>
+              <span className="text-white">Закрыть</span>
+            </DrawerClose>
+            <DrawerHeader>
+              <DrawerTitle>Уведомления</DrawerTitle>
+              <DrawerDescription>
+                В данном разделе вы можете увидеть уведомления
+              </DrawerDescription>
+            </DrawerHeader>
+            <Input
+              placeholder="Загрузите уведомления"
+              className="w-1/2"
+              type="file"
+              multiple
+              onChange={(e) => {
+                if (e.target.files) {
+                  const files = Array.from(e.target.files);
+                  Promise.all(
+                    files.map((file) => {
+                      return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const xml = event.target?.result as string;
+                          resolve(xml);
+                        };
+                        reader.onerror = reject;
+                        reader.readAsText(file, "windows-1251"); // указываем кодировку "windows-1251"
+                      });
+                    })
+                  )
+                    .then((xmls: any[]) => {
+                      setFiles(xmls);
+                      toast.success("Файлы загружены");
+                      console.log(xmls);
+                    })
+                    .catch(() => toast.error("Ошибка при чтении файлов"));
+                }
               }}
-            >
-              <span className="text-white">Скачать</span>
-            </Button>
-            <Button
-              className="z-10 m-4"
-              disabled={!file}
-              onClick={() => {
-                navigator.clipboard
-                  .writeText(file)
-                  .then(() => {
-                    toast.success("Текст отчета скопирован в буфер обмена");
-                  })
-                  .catch((err) => {
-                    toast.error("Ошибка при копировании текста отчета");
-                    console.error("Failed to copy text: ", err);
-                  });
-              }}
-            >
-              <span className="text-white">Скопировать отчет</span>
-            </Button>
-            <Button
-              className="z-10 m-4"
-              onClick={() => {
-                setFile(null);
-              }}
-            >
-              <span className="text-white">Очистить</span>
-            </Button>
-          </div>
-        )}
-        <Input className="z-10 w-1/4" type="file" onChange={handleFileChange} />
-      </div>
+            />
+            <Drawer>
+              <DrawerTrigger>
+                <motion.div drag dragConstraints={constRef}>
+                  <Button
+                    className="z-10 m-4"
+                    asChild
+                    onClick={() => {
+                      try {
+                        processXmlData(files).then((tableData) => {
+                          setTableData(tableData);
+                          console.log(tableData);
+                          const csvData = [
+                            "KPP;OKTMO;CYMMA;KOD PERIODA",
+                            ...Object.values(tableData).map(
+                              (item) =>
+                                `${item.KPP};${item.OKTMO};${item.CYMMA};${item["KOD PERIODA"]}`
+                            ),
+                          ].join("\n");
+                          setUvedCSV(csvData);
+                        });
+                      } catch (e) {
+                        toast.error("Ошибка при обработке файла");
+                        console.log(e);
+                      } finally {
+                        toast.success("Файл обработан");
+                      }
+                    }}
+                  >
+                    <span className="text-white">Вывести таблицу</span>
+                  </Button>
+                </motion.div>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerClose>
+                  <span className="text-white">Закрыть</span>
+                </DrawerClose>
+                <DrawerHeader>
+                  <DrawerTitle>Таблица</DrawerTitle>
+                  <DrawerDescription>
+                    В данном разделе вы можете увидеть таблицу
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div className="w-full p-4">
+                  <DataTableDemo data={tableData} options={filterOptions} />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </DrawerContent>
+        </Drawer>
+        <motion.div drag dragConstraints={constRef}>
+          <Input className="z-10" type="file" onChange={handleFileChange} />
+        </motion.div>
+      </motion.div>
     </>
   );
 };

@@ -2,7 +2,7 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import React from "react";
 
-const Blob = () => {
+const Blob = (props: any) => {
   const blobs = [
     "M47.4,-34.9C61.2,-20.5,71.9,-0.8,67.2,13.5C62.5,27.8,42.3,36.8,21.3,48.5C0.4,60.2,-21.3,74.7,-38.7,70.2C-56,65.7,-69.1,42.2,-73,18.5C-77,-5.2,-71.7,-29.1,-58,-43.5C-44.3,-57.9,-22.1,-62.8,-2.7,-60.6C16.8,-58.5,33.6,-49.3,47.4,-34.9Z",
     "M45.5,-40.3C56.7,-22.2,62.1,-3.4,59.1,15C56.1,33.5,44.8,51.6,27.5,61.7C10.2,71.8,-13.1,73.8,-34.8,65.8C-56.5,57.8,-76.5,39.9,-79.5,20.1C-82.5,0.3,-68.4,-21.5,-52.3,-40.7C-36.2,-59.9,-18.1,-76.4,-0.5,-76.1C17.1,-75.7,34.3,-58.3,45.5,-40.3Z",
@@ -62,10 +62,12 @@ const Blob = () => {
 
   return (
     <motion.svg
+      drag
       viewBox="0 0 200 200"
       xmlns="http://www.w3.org/2000/svg"
       className={"absolute"}
-      style={{ x, y, rotate: rotation, scale: 0.5 }} // уменьшаем масштаб и добавляем вращение
+      dragConstraints={props.ref}
+      style={{ x, y, rotate: rotation, scale: 0.5, zIndex: 999 }} // уменьшаем масштаб и добавляем вращение
     >
       <motion.path
         d={randomBlob}
