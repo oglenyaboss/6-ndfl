@@ -19,7 +19,6 @@ import {
 } from "@tanstack/react-table";
 
 import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
 import {
   Table,
   TableBody,
@@ -43,6 +42,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+import { motion } from "framer-motion";
+
 export type TableRow = {
   KPP: string;
   OKTMO: string;
@@ -58,8 +59,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 export const columns: ColumnDef<TableRow>[] = [
+  {
+    accessorKey: "INN",
+    header: "ИНН",
+    enableColumnFilter: true,
+    enableSorting: true,
+  },
   {
     accessorKey: "KPP",
     header: "КПП",
@@ -117,6 +125,8 @@ export const columns: ColumnDef<TableRow>[] = [
   },
 ];
 
+const MotionTableRow = motion(TableRow);
+
 export function DataTableDemo(props: { data: TableRow[]; options: any }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -167,6 +177,8 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
                       ? props.options.OKTMO
                       : column.id === "KOD PERIODA"
                       ? props.options["KOD PERIODA"]
+                      : column.id === "INN"
+                      ? props.options.INN
                       : [];
                   return (
                     <div key={column.id}>
@@ -181,7 +193,6 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
                         <SelectContent align="start">
                           <SelectGroup>
                             <SelectLabel>Фильтр по {column.id}</SelectLabel>
-                            
                             <SelectItem value={null}>Сбросить</SelectItem>
                             {options.map((option: any) => (
                               <SelectItem key={option} value={option}>
@@ -246,20 +257,36 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
+              table.getRowModel().rows.map((row, index) => (
+                <MotionTableRow
                   key={row.id}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      className=" cursor-pointer"
+                      onClick={async () => {
+                        try {
+                          const text = cell.getContext().getValue();
+                          console.log(text);
+                          await navigator.clipboard.writeText(text);
+                          toast.success("Скопировано в буфер обмена");
+                        } catch (error) {
+                          toast.error("Не удалось скопировать в буфер обмена");
+                        }
+                      }}
+                      key={cell.id}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
                       )}
                     </TableCell>
                   ))}
-                </TableRow>
+                </MotionTableRow>
               ))
             ) : (
               <TableRow>
@@ -267,7 +294,7 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  Нет данных
                 </TableCell>
               </TableRow>
             )}
@@ -286,7 +313,7 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            Предыдущая
           </Button>
           <Button
             variant="outline"
@@ -294,7 +321,7 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            Следующая
           </Button>
         </div>
       </div>

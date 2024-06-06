@@ -26,40 +26,36 @@ const Blob = (props: any) => {
   const rotation = useMotionValue(Math.random() * 360); // начальное положение вращения
   const rotationSpeed = useMotionValue((Math.random() - 0.5) * 1); // скорость вращения
 
+  const windowWidth = typeof window !== "undefined" ? window.innerWidth : 0;
+  const windowHeight = typeof window !== "undefined" ? window.innerHeight : 0;
+
   React.useEffect(() => {
     const unsubscribeX = x.onChange((currentX) => {
-      // Если достигнута граница экрана, меняем направление движения
-      if (currentX < -window.innerWidth / 2 || currentX > window.innerWidth) {
+      if (currentX < -windowWidth / 2 || currentX > windowWidth) {
         vx.set(-vx.get());
       }
     });
 
     const unsubscribeY = y.onChange((currentY) => {
-      // Если достигнута граница экрана, меняем направление движения
-      if (
-        currentY < -window.innerHeight / 2 ||
-        currentY > window.innerHeight / 2
-      ) {
+      if (currentY < -windowHeight / 2 || currentY > windowHeight / 2) {
         vy.set(-vy.get());
       }
     });
+
+    const update = () => {
+      x.set(x.get() + vx.get());
+      y.set(y.get() + vy.get());
+      rotation.set((rotation.get() + rotationSpeed.get()) % 360);
+      requestAnimationFrame(update);
+    };
+
+    update();
 
     return () => {
       unsubscribeX();
       unsubscribeY();
     };
   }, []);
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      x.set(x.get() + vx.get());
-      y.set(y.get() + vy.get());
-      rotation.set((rotation.get() + rotationSpeed.get()) % 360);
-    }, 1000 / 60); // обновляем координаты и вращение 60 раз в секунду
-
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <motion.svg
       drag
