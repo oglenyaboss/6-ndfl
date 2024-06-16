@@ -498,14 +498,13 @@ async function correctTax(xml: any) {
     let sumNalIschSec15 = 0;
     let sumNalIschSec30 = 0;
 
-    console.log(spravDohs);
-
     spravDohs.forEach((spravDoh: any) => {
+      const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
       spravDoh["СведДох"].forEach((spravDoh: any) => {
         const stavka = spravDoh["$"]["Ставка"];
         const nalBase = spravDoh["СумИтНалПер"][0]["$"]["НалБаза"];
+        console.log(spravDoh);
         if (nalBase < 10) {
-          const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
           toast.warning(
             `Налоговая база меньше 10 для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
           );
@@ -552,13 +551,13 @@ async function correctTax(xml: any) {
 
     return xml;
   } catch (error) {
+    console.log(error);
     throw new Error("Ошибка при обработке XML");
   }
 }
 
-async function setNumCorr(xml: any, num: string) {
+async function setNumCorr(obj: any, num: string) {
   try {
-    const obj = await parser.parseStringPromise(xml);
     const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
 
     spravDohs.forEach((spravDoh: any) => {
@@ -576,14 +575,12 @@ async function setNumCorr(xml: any, num: string) {
   }
 }
 
-async function nullCorr(xml: any) {
+async function nullCorr(obj: any) {
   try {
-    const obj = await parser.parseStringPromise(xml);
     const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
-
-    console.log(obj?.["Файл"]["Документ"]);
     obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["$"]["СумНалВоз"] = 0;
     obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["$"]["СумНалУд"] = 0;
+    console.log(obj["Файл"]["Документ"][0]["НДФЛ6.2"]);
     Object.keys(
       obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["СведСумНалУд"][0][
         "$"
@@ -616,8 +613,7 @@ async function nullCorr(xml: any) {
       spravDoh["СведДох"][0]["НалВычССИ"] = null;
       spravDoh["СведДох"][0]["ДохВыч"] = null;
     });
-    const newXml = builder.buildObject(obj);
-    const readyXml = setNumCorr(newXml, "99");
+    const readyXml = setNumCorr(obj, "99");
     return readyXml;
   } catch (error) {
     console.error(error);
@@ -792,9 +788,10 @@ async function compareXmls(xml1: any, xml2: any) {
   return newXml;
 }
 
-async function downloadFile(xml: any) {
+async function downloadFile(obj: any) {
   try {
-    const name = `${xml.Файл["$"].ИдФайл}.xml`;
+    const xml = builder.buildObject(obj);
+    const name = `${obj.Файл["$"].ИдФайл}.xml`;
 
     const content = iconv.encode(xml, "win1251");
 
