@@ -19,10 +19,22 @@ import {
   downloadFile,
   compareXmls,
   parseXml,
+  check,
 } from "@/utils/functions";
 import DataTableDemo from "@/components/ui/tenStackTable";
 import { BackgroundBeams } from "@/components/uiV2/bgBeams";
 import { Tabs } from "@/components/uiV2/tabs";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "./components/ui/drawer";
+import { LinkPreview } from "@/components/uiV2/additional-info";
+import { Separator } from "@radix-ui/react-dropdown-menu";
 
 type HomeProps = {
   changeVersion: () => void;
@@ -37,6 +49,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
   const [uvedCSV, setUvedCSV] = React.useState<any>(null);
   const [filterOptions, setFilterOptions] = React.useState<any>(null);
   const [obj, setObj] = React.useState<any>(null);
+  const [errors, setErrors] = React.useState<any>(null);
 
   const tabs = [
     {
@@ -490,23 +503,76 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             1. Проверить - проверяет контрольные соотношения в отчете. <br />
           </p>
           <div className="flex-row flex">
-            <button
-              className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
-              onClick={() => {
-                toast.warning("Функция в разработке");
+            <Drawer
+              open={errors?.length > 0}
+              onClose={() => {
+                setErrors(null);
               }}
             >
-              Проверить
-            </button>
+              <DrawerTrigger>
+                <button
+                  className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
+                  onClick={() => {
+                    check(obj).then((data) => {
+                      console.log(data);
+                      setErrors(data);
+                      if (errors?.length === 0) {
+                        toast.success("Ошибки не найдены");
+                      }
+                    });
+                  }}
+                >
+                  Проверить
+                </button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerClose>
+                  <span className="text-white">Закрыть</span>
+                </DrawerClose>
+                <DrawerHeader>
+                  <DrawerTitle>Таблица</DrawerTitle>
+                  <DrawerDescription>
+                    В данном разделе вы можете увидеть таблицу
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div className="w-full p-4">
+                  {errors?.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      {errors.map((item: any, index: number) => (
+                        <div key={index} className="flex flex-col py-5">
+                          <LinkPreview text={item.additionalInfo}>
+                            <p className="">{item.message}</p>
+                          </LinkPreview>
+                          <button
+                            className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 w-1/6"
+                            onClick={() => {
+                              item.function(obj).then((newObj: any) => {
+                                setObj(newObj);
+                                check(obj).then((data) => {
+                                  console.log(data);
+                                  setErrors(data);
+                                  toast.success("Ошибка исправлена");
+                                });
+                              });
+                            }}
+                          >
+                            Исправить
+                          </button>
+                          <Separator />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>Ошибок нет</p>
+                  )}
+                </div>
+              </DrawerContent>
+            </Drawer>
           </div>
         </div>
       ),
     },
   ];
-
-  React.useEffect(() => {
-    console.log(numCorrerction);
-  }, [numCorrerction]);
 
   React.useEffect(() => {
     console.log(obj);
@@ -747,7 +813,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
           </motion.div>
         )}
       </motion.div>
-      {obj && (
+      {/* {obj && (
         <motion.div
           style={{
             scrollSnapAlign: "center",
@@ -830,7 +896,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             }}
           />
         </motion.div>
-      )}
+      )} */}
       {(obj || file) && (
         <motion.div
           style={{
