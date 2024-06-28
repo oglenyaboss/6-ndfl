@@ -19,10 +19,22 @@ import {
   downloadFile,
   compareXmls,
   parseXml,
+  check,
 } from "@/utils/functions";
 import DataTableDemo from "@/components/ui/tenStackTable";
 import { BackgroundBeams } from "@/components/uiV2/bgBeams";
 import { Tabs } from "@/components/uiV2/tabs";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "./components/ui/drawer";
+import { LinkPreview } from "@/components/uiV2/additional-info";
+import { Separator } from "@radix-ui/react-dropdown-menu";
 
 type HomeProps = {
   changeVersion: () => void;
@@ -37,6 +49,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
   const [uvedCSV, setUvedCSV] = React.useState<any>(null);
   const [filterOptions, setFilterOptions] = React.useState<any>(null);
   const [obj, setObj] = React.useState<any>(null);
+  const [errors, setErrors] = React.useState<any>(null);
 
   const tabs = [
     {
@@ -58,7 +71,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                correctTax(file)
+                correctTax(obj)
                   .then((newXml) => {
                     console.log(newXml);
                     setFile(newXml);
@@ -75,7 +88,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200"
               onClick={() => {
-                updateXml(file)
+                updateXml(obj)
                   .then((newXml) => {
                     console.log(newXml);
                     setFile(newXml);
@@ -112,7 +125,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={async () => {
                 try {
-                  const newXml = await correctNegativeIncome(file);
+                  const newXml = await correctNegativeIncome(obj);
                   console.log(newXml);
                   setFile(newXml);
                   toast.success("Файл обработан");
@@ -146,7 +159,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={async () => {
                 try {
-                  const newXml = await kvartal(file);
+                  const newXml = await kvartal(obj);
                   console.log(newXml);
                   setFile(newXml);
                   toast.success("Файл обработан");
@@ -196,7 +209,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                setNumCorr(file, numCorrerction)
+                setNumCorr(obj, numCorrerction)
                   .then((newXml) => {
                     console.log(newXml);
                     setFile(newXml);
@@ -214,7 +227,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                nullCorr(file)
+                nullCorr(obj)
                   .then((newXml) => {
                     console.log(newXml);
                     setFile(newXml);
@@ -351,6 +364,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
                 setFile(null);
+                setObj(null);
               }}
             >
               Очистить отчет
@@ -374,7 +388,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                downloadFile(file);
+                downloadFile(obj);
               }}
             >
               Скачать отчет
@@ -476,11 +490,93 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
         </div>
       ),
     },
+    {
+      title: "Проверка",
+      value: "check",
+      content: (
+        <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900 flex justify-between flex-col">
+          <p className=" pb-4">Проверка контрольных соотношений</p>
+          <p className=" font-light text-lg">
+            В этой вкладке вы можете проверить контрольные соотношения в отчете.
+            <br /> Краткое описание функций:
+            <br />
+            1. Проверить - проверяет контрольные соотношения в отчете. <br />
+          </p>
+          <div className="flex-row flex">
+            <Drawer
+              open={errors?.length > 0}
+              onClose={() => {
+                setErrors(null);
+              }}
+            >
+              <DrawerTrigger>
+                <button
+                  className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
+                  onClick={() => {
+                    check(obj).then((data) => {
+                      console.log(data);
+                      setErrors(data);
+                      if (errors?.length === 0) {
+                        toast.success("Ошибки не найдены");
+                      }
+                    });
+                  }}
+                >
+                  Проверить
+                </button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerClose>
+                  <span className="text-white">Закрыть</span>
+                </DrawerClose>
+                <DrawerHeader>
+                  <DrawerTitle>Таблица</DrawerTitle>
+                  <DrawerDescription>
+                    В данном разделе вы можете увидеть таблицу
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div className="w-full p-4">
+                  {errors?.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      {errors.map((item: any, index: number) => (
+                        <div key={index} className="flex flex-col py-5">
+                          <LinkPreview text={item.additionalInfo}>
+                            <p className="">{item.message}</p>
+                          </LinkPreview>
+                          <button
+                            className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 w-1/6"
+                            onClick={() => {
+                              item.function(obj).then((newObj: any) => {
+                                setObj(newObj);
+                                check(obj).then((data) => {
+                                  console.log(data);
+                                  setErrors(data);
+                                  toast.success("Ошибка исправлена");
+                                });
+                              });
+                            }}
+                          >
+                            Исправить
+                          </button>
+                          <Separator />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>Ошибок нет</p>
+                  )}
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </div>
+        </div>
+      ),
+    },
   ];
 
   React.useEffect(() => {
-    console.log(numCorrerction);
-  }, [numCorrerction]);
+    console.log(obj);
+  }, [obj]);
 
   React.useMemo(() => {
     const kppSet = new Set(tableData.map((item) => item.KPP));
@@ -717,7 +813,91 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
           </motion.div>
         )}
       </motion.div>
-      {file && (
+      {/* {obj && (
+        <motion.div
+          style={{
+            scrollSnapAlign: "center",
+          }}
+          className="w-full h-screen dark:bg-grid-white/[0.2] bg-grid-black/[0.2] relative flex items-center justify-center flex-col"
+        >
+          <p>{`Период отчета: ${
+            obj.Файл.Документ[0].$.Период === "21"
+              ? "1 квартал"
+              : obj.Файл.Документ[0].$.Период === "31"
+              ? "Полугодие"
+              : obj.Файл.Документ[0].$.Период === "33"
+              ? "9 месяцев"
+              : "Годовой"
+          } за ${obj.Файл.Документ[0].$.ОтчетГод}`}</p>
+          <p>{`Код налогового органа ${obj.Файл.Документ[0].$.КодНО}`}</p>
+          <p>{`ОКТМО ${obj.Файл.Документ[0].СвНП[0].$.ОКТМО}`}</p>
+          <p>{`ИНН ${obj.Файл.Документ[0].СвНП[0].НПЮЛ[0].$.ИННЮЛ}`}</p>
+          <p>{`КПП ${obj.Файл.Документ[0].СвНП[0].НПЮЛ[0].$.КПП}`}</p>
+          <p>
+            {`Наименование ${obj.Файл.Документ[0].СвНП[0].НПЮЛ[0].$.НаимОрг}`}
+          </p>
+          <Input
+            placeholder="Введите код налогового органа"
+            // type="number"
+            value={obj.Файл.Документ[0].$.КодНО}
+            onChange={(e) => {
+              const value = e.target.value;
+              // if (value.length != 4) {
+              //   toast.error("Код налогового органа должен быть 4 символа");
+              //   return;
+              // }
+              setObj((prev) => {
+                return {
+                  ...prev,
+                  Файл: {
+                    ...prev.Файл,
+                    Документ: [
+                      {
+                        ...prev.Файл.Документ[0],
+                        $: {
+                          ...prev.Файл.Документ[0].$,
+                          КодНО: value,
+                        },
+                      },
+                    ],
+                  },
+                };
+              });
+            }}
+          />
+          <Input
+            placeholder="Введите ОКТМО"
+            // type="number"
+            value={obj.Файл.Документ[0].СвНП[0].$.ОКТМО}
+            onChange={(e) => {
+              const value = e.target.value;
+              setObj((prev) => {
+                return {
+                  ...prev,
+                  Файл: {
+                    ...prev.Файл,
+                    Документ: [
+                      {
+                        ...prev.Файл.Документ[0],
+                        СвНП: [
+                          {
+                            ...prev.Файл.Документ[0].СвНП[0],
+                            $: {
+                              ...prev.Файл.Документ[0].СвНП[0].$,
+                              ОКТМО: value,
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                };
+              });
+            }}
+          />
+        </motion.div>
+      )} */}
+      {(obj || file) && (
         <motion.div
           style={{
             scrollSnapAlign: "center",

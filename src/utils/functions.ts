@@ -9,6 +9,13 @@ const builder = new xml2js.Builder({
 
 const parser = new xml2js.Parser();
 
+interface Error {
+  message: string;
+  additionalInfo?: string;
+  location?: any;
+  function?: Function;
+}
+
 async function mergeXmlFiles(xml1: any, xml2: any) {
   const obj1 = await parser.parseStringPromise(xml1);
   const obj2 = await parser.parseStringPromise(xml2);
@@ -498,14 +505,13 @@ async function correctTax(xml: any) {
     let sumNalIschSec15 = 0;
     let sumNalIschSec30 = 0;
 
-    console.log(spravDohs);
-
     spravDohs.forEach((spravDoh: any) => {
+      const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
       spravDoh["СведДох"].forEach((spravDoh: any) => {
         const stavka = spravDoh["$"]["Ставка"];
         const nalBase = spravDoh["СумИтНалПер"][0]["$"]["НалБаза"];
+        console.log(spravDoh);
         if (nalBase < 10) {
-          const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
           toast.warning(
             `Налоговая база меньше 10 для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
           );
@@ -552,13 +558,13 @@ async function correctTax(xml: any) {
 
     return xml;
   } catch (error) {
+    console.log(error);
     throw new Error("Ошибка при обработке XML");
   }
 }
 
-async function setNumCorr(xml: any, num: string) {
+async function setNumCorr(obj: any, num: string) {
   try {
-    const obj = await parser.parseStringPromise(xml);
     const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
 
     spravDohs.forEach((spravDoh: any) => {
@@ -576,25 +582,24 @@ async function setNumCorr(xml: any, num: string) {
   }
 }
 
-async function nullCorr(xml: any) {
+async function nullCorr(obj: any) {
   try {
-    const obj = await parser.parseStringPromise(xml);
     const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
-
-    console.log(obj?.["Файл"]["Документ"]);
     obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["$"]["СумНалВоз"] = 0;
     obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["$"]["СумНалУд"] = 0;
-    Object.keys(
-      obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["СведСумНалУд"][0][
-        "$"
-      ]
-    ).forEach((key) => {
-      if (key !== "КБК") {
-        obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0][
-          "СведСумНалУд"
-        ][0]["$"][key] = "0";
-      }
-    });
+    console.log(obj["Файл"]["Документ"][0]["НДФЛ6.2"]);
+    if (obj.Файл.Документ[0]["НДФЛ6.2"][0].ОбязНА[0].$.СумНалУд !== 0) {
+      Object.keys(
+        obj.Файл.Документ[0]["НДФЛ6.2"][0].ОбязНА[0].СведСумНалУд[0].$
+      ).forEach((key) => {
+        if (key !== "КБК" && key !== "Ставка") {
+          delete obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0][
+            "СведСумНалУд"
+          ][0]["$"][key];
+        }
+      });
+    }
+
     let objData =
       obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"];
 
@@ -613,11 +618,13 @@ async function nullCorr(xml: any) {
       if (spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалПеречисл"]) {
         spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалПеречисл"] = 0;
       }
-      spravDoh["СведДох"][0]["НалВычССИ"] = null;
-      spravDoh["СведДох"][0]["ДохВыч"] = null;
+      delete spravDoh["СведДох"][0]["НалВычССИ"];
+      spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"].forEach((doh: any) => {
+        doh.$.СумДоход = 0;
+        delete doh.СвСумВыч;
+      });
     });
-    const newXml = builder.buildObject(obj);
-    const readyXml = setNumCorr(newXml, "99");
+    const readyXml = setNumCorr(obj, "99");
     return readyXml;
   } catch (error) {
     console.error(error);
@@ -625,16 +632,20 @@ async function nullCorr(xml: any) {
   }
 }
 
-async function kvartal(xml: any) {
+async function kvartal(obj: any) {
   try {
-    const header = xml?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"];
-    header["$"]["СумНалИсч"] = header["$"]["СумНалУдерж"];
-    header["$"]["НалБаза"] = Math.round(
-      header["$"]["СумНалУдерж"] / 0.13
-    ).toFixed(2);
-    header["$"]["НачислНач"] = header["$"]["НалБаза"] + header["$"]["СумВыч"];
+    const sumNalIsch =
+      obj?.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИсч;
+    const sumNalUder =
+      obj?.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалУдерж;
+    const sumVich = obj?.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумВыч;
+    const nalBaza = obj?.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.НалБаза;
 
-    return xml;
+    obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИсч =
+      nalBaza * 0.13;
+    obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалУдерж =
+      obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИсч;
+    return obj;
   } catch (error) {
     throw new Error("Ошибка при обработке XML");
   }
@@ -792,9 +803,10 @@ async function compareXmls(xml1: any, xml2: any) {
   return newXml;
 }
 
-async function downloadFile(xml: any) {
+async function downloadFile(obj: any) {
   try {
-    const name = `${xml.Файл["$"].ИдФайл}.xml`;
+    const xml = builder.buildObject(obj);
+    const name = `${obj.Файл["$"].ИдФайл}.xml`;
 
     const content = iconv.encode(xml, "win1251");
 
@@ -818,6 +830,50 @@ async function downloadFile(xml: any) {
   }
 }
 
+async function check(obj: any) {
+  const errors: Error[] = [];
+
+  const sumDoh =
+    obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНачислНач; //???????
+  const sumVich = obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумВыч;
+  const kolFZ = obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.КолФЛ;
+  const sumNalIsch =
+    obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИсч;
+  const allowedRound = kolFZ * 0.5;
+  const sumNalUder =
+    obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалУдерж;
+  const sumNalVozv =
+    obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалВозвр;
+  const sumNalIzlUder =
+    obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИзлУдерж;
+
+  if (Math.abs((sumDoh - sumVich) * 0.13 - sumNalIsch) > allowedRound) {
+    errors.push({
+      message: `Сумма налога исчисленного не равна 13% от разницы между суммой дохода и вычетом.`,
+      additionalInfo:
+        `
+      Налоговая база: ${sumDoh - sumVich} * Ставка: 0.13 = ${Math.round(
+          (sumDoh - sumVich) * 0.13
+        )} ± погрешность: ${allowedRound} ≠ 140 строка: ${sumNalIsch} ` +
+        ` Разница: ${Math.floor((sumDoh - sumVich) * 0.13 - sumNalIsch)}`,
+      location: `obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИсч`,
+      function: kvartal,
+    });
+  }
+
+  if (sumNalIsch !== sumNalUder - sumNalVozv - sumNalIzlUder) {
+    errors.push({
+      message: `Сумма налога исчисленного не равна сумме налога удержанного и возвращенного.`,
+      additionalInfo: `Сумма налога исчисленного: ${sumNalIsch} ≠ Сумма налога удержанного: ${sumNalUder} - Сумма налога возвращенного: ${sumNalVozv} - Сумма налога излишне удержанного: ${sumNalIzlUder}`,
+      location: `obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИсч`,
+      function: kvartal,
+    });
+  }
+  /////////////////////////////////////////
+
+  return errors;
+}
+
 export {
   parseXml,
   mergeXmlFiles,
@@ -830,4 +886,5 @@ export {
   processXmlData,
   downloadFile,
   compareXmls,
+  check,
 };
