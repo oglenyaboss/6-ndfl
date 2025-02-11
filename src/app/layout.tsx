@@ -9,7 +9,12 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "6-НДФЛ",
-  description: "6-ндфл",
+  description: "Мощный инструмент для работы с налоговыми декларациями",
+  keywords: "6-НДФЛ, налоговая декларация, налоги, налоговая отчетность",
+  applicationName: "6-НДФЛ",
+  creator: "@oglenya",
+  category: "Business",
+  robots: "index, follow",
 };
 
 export default function RootLayout({
@@ -21,7 +26,7 @@ export default function RootLayout({
     <html lang="en">
       <GoogleAnalytics />
       <body className={inter.className}>
-        {children}s
+        {children}
         <Toaster />
       </body>
     </html>

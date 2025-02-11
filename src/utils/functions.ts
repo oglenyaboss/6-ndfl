@@ -565,15 +565,23 @@ async function correctTax(xml: any) {
 
 async function setNumCorr(obj: any, num: string) {
   try {
-    const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
+    if (parseInt(num) < 10) {
+      obj.Файл.Документ[0].$.НомКорр = `0${num}`;
+    } else {
+      obj.Файл.Документ[0].$.НомКорр = `${num}`;
+    }
 
-    spravDohs.forEach((spravDoh: any) => {
-      if (parseInt(num) < 10) {
-        spravDoh["$"]["НомКорр"] = `0${num}`;
-      } else {
-        spravDoh["$"]["НомКорр"] = `${num}`;
-      }
-    });
+    if (obj.Файл.Документ[0].$.Период === "34") {
+      const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
+
+      spravDohs.forEach((spravDoh: any) => {
+        if (parseInt(num) < 10) {
+          spravDoh["$"]["НомКорр"] = `0${num}`;
+        } else {
+          spravDoh["$"]["НомКорр"] = `${num}`;
+        }
+      });
+    }
 
     const newXml = builder.buildObject(obj);
     return newXml;
@@ -584,7 +592,6 @@ async function setNumCorr(obj: any, num: string) {
 
 async function nullCorr(obj: any) {
   try {
-    const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
     obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["$"]["СумНалВоз"] = 0;
     obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["$"]["СумНалУд"] = 0;
     console.log(obj["Файл"]["Документ"][0]["НДФЛ6.2"]);
@@ -608,22 +615,24 @@ async function nullCorr(obj: any) {
         objData[key] = "0";
       }
     });
-    console.log(spravDohs);
-
-    spravDohs.forEach((spravDoh: any) => {
-      spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалБаза"] = 0;
-      spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["СумДохОбщ"] = 0;
-      spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалИсчисл"] = 0;
-      spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалУдерж"] = 0;
-      if (spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалПеречисл"]) {
-        spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалПеречисл"] = 0;
-      }
-      delete spravDoh["СведДох"][0]["НалВычССИ"];
-      spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"].forEach((doh: any) => {
-        doh.$.СумДоход = 0;
-        delete doh.СвСумВыч;
+    if (obj.Файл.Документ[0].$.Период === "34") {
+      const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
+      spravDohs.forEach((spravDoh: any) => {
+        spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалБаза"] = 0;
+        spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["СумДохОбщ"] = 0;
+        spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалИсчисл"] = 0;
+        spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалУдерж"] = 0;
+        if (spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалПеречисл"]) {
+          spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалПеречисл"] = 0;
+        }
+        delete spravDoh["СведДох"][0]["НалВычССИ"];
+        spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"].forEach((doh: any) => {
+          doh.$.СумДоход = 0;
+          delete doh.СвСумВыч;
+        });
       });
-    });
+    }
+
     const readyXml = setNumCorr(obj, "99");
     return readyXml;
   } catch (error) {
@@ -706,7 +715,12 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
         const inn = document.СвНП[0].НПЮЛ[0]["$"].ИННЮЛ;
 
         taxInfos.forEach((taxInfo) => {
-          if (taxInfo["$"].КБК !== "18210102010011000110") {
+          if (
+            taxInfo["$"].КБК !== "18210102010011000110" &&
+            taxInfo["$"].КБК !== "18210102010013000110" &&
+            taxInfo["$"].КБК !== "18210102080011000110"
+            // taxInfo["$"].КБК !== "18210102010013000110"
+          ) {
             return;
           }
 
@@ -749,7 +763,20 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
     }));
 
     sortedData.sort((a, b) => {
-      const order = ["21 01", "21 11", "21 02", "21 12", "21 03", "21 13"];
+      const order = [
+        "21 01",
+        "21 11",
+        "21 02",
+        "21 12",
+        "21 03",
+        "21 13",
+        "31 01",
+        "31 11",
+        "31 02",
+        "31 12",
+        "31 03",
+        "31 13",
+      ];
       return order.indexOf(a["KOD PERIODA"]) - order.indexOf(b["KOD PERIODA"]);
     });
 
@@ -863,7 +890,7 @@ async function check(obj: any) {
 
   if (sumNalIsch !== sumNalUder - sumNalVozv - sumNalIzlUder) {
     errors.push({
-      message: `Сумма налога исчисленного не равна сумме налога удержанного и возвращенного.`,
+      message: `Сумма налога удержанного не равна сумме налога исчисленного.`,
       additionalInfo: `Сумма налога исчисленного: ${sumNalIsch} ≠ Сумма налога удержанного: ${sumNalUder} - Сумма налога возвращенного: ${sumNalVozv} - Сумма налога излишне удержанного: ${sumNalIzlUder}`,
       location: `obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИсч`,
       function: kvartal,
