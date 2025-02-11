@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[8642],{88642:function(e,a,n){n.d(a,{loadSquareShape:function(){return t}});async function t(e,a=!0){let{SquareDrawer:t}=await n.e(26).then(n.bind(n,50026));await e.addShape(["edge","square"],new t,a)}}}]);

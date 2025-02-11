@@ -1,6 +1,4 @@
-"use client";
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import type { Container, SingleOrMultiple } from "@tsparticles/engine";
 import { loadSlim } from "@tsparticles/slim";
@@ -18,6 +16,7 @@ type ParticlesProps = {
   particleColor?: string;
   particleDensity?: number;
 };
+
 export const SparklesCore = (props: ParticlesProps) => {
   const {
     id,
@@ -30,6 +29,9 @@ export const SparklesCore = (props: ParticlesProps) => {
     particleDensity,
   } = props;
   const [init, setInit] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     initParticlesEngine(async (engine) => {
       await loadSlim(engine);
@@ -37,6 +39,28 @@ export const SparklesCore = (props: ParticlesProps) => {
       setInit(true);
     });
   }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      {
+        threshold: 0.1,
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, []);
+
   const controls = useAnimation();
 
   const particlesLoaded = async (container?: Container) => {
@@ -52,8 +76,12 @@ export const SparklesCore = (props: ParticlesProps) => {
   };
 
   return (
-    <motion.div animate={controls} className={cn("opacity-0", className)}>
-      {init && (
+    <motion.div
+      ref={containerRef}
+      animate={controls}
+      className={cn("opacity-0", className)}
+    >
+      {init && isVisible && (
         <Particles
           id={id || "tsparticles"}
           className={cn("h-full w-full")}
@@ -68,7 +96,6 @@ export const SparklesCore = (props: ParticlesProps) => {
               enable: false,
               zIndex: 1,
             },
-
             fpsLimit: 120,
             interactivity: {
               events: {

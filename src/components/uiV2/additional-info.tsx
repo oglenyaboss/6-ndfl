@@ -108,7 +108,7 @@ export const LinkPreview = ({
           <AnimatePresence>
             {isOpen && (
               <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.6 }}
+                initial={{ opacity: 0, y: 20, scale: 0.6, width: "40vw" }}
                 animate={{
                   opacity: 1,
                   y: 0,
@@ -125,7 +125,7 @@ export const LinkPreview = ({
                   x: translateX,
                 }}
               >
-                <p className="text-s text-neutral-500 dark:text-neutral-400">
+                <p className="text-s text-neutral-500 dark:text-neutral-400 font-light text-center">
                   {text}
                 </p>
               </motion.div>
