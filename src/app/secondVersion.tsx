@@ -70,7 +70,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                fetch("http://localhost:3000/api/correct-isch", {
+                fetch("/api/correct-isch", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -109,7 +109,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200"
               onClick={() => {
-                fetch("http://localhost:3000/api/correct-uderzh", {
+                fetch("/api/correct-uderzh", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -167,7 +167,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                fetch("http://localhost:3000/api/correct-income", {
+                fetch("/api/correct-income", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -275,7 +275,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                fetch("http://localhost:3000/api/corr", {
+                fetch("/api/corr", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -316,7 +316,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                fetch("http://localhost:3000/api/null-corr", {
+                fetch("/api/null-corr", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -439,7 +439,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                 //     toast.error("Ошибка при обработке файла");
                 //     console.log(e);
                 //   });
-                fetch("http://localhost:3000/api/merge-xml", {
+                fetch("/api/merge-xml", {
                   method: "POST",
                   body: JSON.stringify({
                     xml1: firstObj,
