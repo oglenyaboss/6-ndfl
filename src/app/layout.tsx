@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import GoogleAnalytics from "@/components/googleAnalytics";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <SpeedInsights />
       <GoogleAnalytics />
       <body className={inter.className}>
         {children}
