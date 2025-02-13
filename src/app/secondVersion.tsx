@@ -70,7 +70,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                fetch("http://localhost:3000/correct-isch", {
+                fetch("http://localhost:3000/api/correct-isch", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -80,25 +80,28 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                   },
                 })
                   .then((res) => {
-                    res.text().then((data) => {
-                      setObj(JSON.parse(data));
-                      toast.success("Файл успешно обработан");
-                    });
+                    // Проверяем статус ответа
+                    if (!res.ok) {
+                      // Если статус не 2xx, выбрасываем ошибку
+                      return res.text().then((errorMessage) => {
+                        throw new Error(
+                          `Ошибка ${res.status}: ${errorMessage}`
+                        );
+                      });
+                    }
+                    // Если статус успешный, парсим данные
+                    return res.json();
                   })
-                  .catch((e) => {
-                    toast.error("Ошибка при обработке файла");
-                    console.log(e);
+                  .then((data) => {
+                    // Обновляем состояние и показываем уведомление
+                    setObj(data);
+                    toast.success("Файл успешно обработан");
+                  })
+                  .catch((error) => {
+                    // Обработка всех ошибок (сетевых или от сервера)
+                    console.error("Ошибка при обработке файла:", error);
+                    toast.error("Произошла ошибка при обработке файла");
                   });
-                // correctTax(obj)
-                //   .then((newXml) => {
-                //     console.log(newXml);
-                //     setFile(newXml);
-                //     toast.success("Файл успешно обработан");
-                //   })
-                //   .catch((e) => {
-                //     toast.error("Ошибка при обработке файла");
-                //     console.log(e);
-                //   });
               }}
             >
               Выровнять налог
@@ -106,7 +109,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200"
               onClick={() => {
-                fetch("http://localhost:3000/correct-uderzh", {
+                fetch("http://localhost:3000/api/correct-uderzh", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -116,26 +119,28 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                   },
                 })
                   .then((res) => {
-                    res.text().then((data) => {
-                      setObj(JSON.parse(data));
-                      toast.success("Файл успешно обработан");
-                    });
+                    // Проверяем статус ответа
+                    if (!res.ok) {
+                      // Если статус не 2xx, выбрасываем ошибку
+                      return res.text().then((errorMessage) => {
+                        throw new Error(
+                          `Ошибка ${res.status}: ${errorMessage}`
+                        );
+                      });
+                    }
+                    // Если статус успешный, парсим данные
+                    return res.json();
                   })
-                  .catch((e) => {
-                    toast.error("Ошибка при обработке файла");
-                    console.log(e);
+                  .then((data) => {
+                    // Обновляем состояние и показываем уведомление
+                    setObj(data);
+                    toast.success("Файл успешно обработан");
+                  })
+                  .catch((error) => {
+                    // Обработка всех ошибок (сетевых или от сервера)
+                    console.error("Ошибка при обработке файла:", error);
+                    toast.error("Произошла ошибка при обработке файла");
                   });
-
-                // updateXml(obj)
-                //   .then((newXml) => {
-                //     console.log(newXml);
-                //     setFile(newXml);
-                //     toast.success("Файл успешно обработан");
-                //   })
-                //   .catch((e) => {
-                //     toast.error("Ошибка при обработке файла");
-                //     console.log(e);
-                //   });
               }}
             >
               Выровнять удержанный
@@ -162,7 +167,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                fetch("http://localhost:3000/correct-income", {
+                fetch("http://localhost:3000/api/correct-income", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -172,24 +177,28 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                   },
                 })
                   .then((res) => {
-                    res.text().then((data) => {
-                      setObj(JSON.parse(data));
-                      toast.success("Файл успешно обработан");
-                    });
+                    // Проверяем статус ответа
+                    if (!res.ok) {
+                      // Если статус не 2xx, выбрасываем ошибку
+                      return res.text().then((errorMessage) => {
+                        throw new Error(
+                          `Ошибка ${res.status}: ${errorMessage}`
+                        );
+                      });
+                    }
+                    // Если статус успешный, парсим данные
+                    return res.json();
                   })
-                  .catch((e) => {
-                    toast.error("Ошибка при обработке файла");
-                    console.log(e);
+                  .then((data) => {
+                    // Обновляем состояние и показываем уведомление
+                    setObj(data);
+                    toast.success("Файл успешно обработан");
+                  })
+                  .catch((error) => {
+                    // Обработка всех ошибок (сетевых или от сервера)
+                    console.error("Ошибка при обработке файла:", error);
+                    toast.error("Произошла ошибка при обработке файла");
                   });
-                // try {
-                //   const newXml = await correctNegativeIncome(obj);
-                //   console.log(newXml);
-                //   setFile(newXml);
-                //   toast.success("Файл обработан");
-                // } catch (e) {
-                //   toast.error("Ошибка при обработке файла");
-                //   console.log(e);
-                // }
               }}
             >
               Выровнять доход
@@ -266,7 +275,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
             <button
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                fetch("http://localhost:3000/corr", {
+                fetch("http://localhost:3000/api/corr", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
@@ -277,52 +286,68 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                   },
                 })
                   .then((res) => {
-                    res.text().then((data) => {
-                      setObj(JSON.parse(data));
-                      toast.success("Файл успешно обработан");
-                    });
+                    // Проверяем статус ответа
+                    if (!res.ok) {
+                      // Если статус не 2xx, выбрасываем ошибку
+                      return res.text().then((errorMessage) => {
+                        throw new Error(
+                          `Ошибка ${res.status}: ${errorMessage}`
+                        );
+                      });
+                    }
+                    // Если статус успешный, парсим данные
+                    return res.json();
                   })
-                  .catch((e) => {
-                    toast.error("Ошибка при обработке файла");
-                    console.log(e);
+                  .then((data) => {
+                    // Обновляем состояние и показываем уведомление
+                    setObj(data);
+                    toast.success("Файл успешно обработан");
+                  })
+                  .catch((error) => {
+                    // Обработка всех ошибок (сетевых или от сервера)
+                    console.error("Ошибка при обработке файла:", error);
+                    toast.error("Произошла ошибка при обработке файла");
                   });
-                // setNumCorr(obj, numCorrerction)
-                //   .then((newXml) => {
-                //     console.log(newXml);
-                //     setFile(newXml);
-                //     toast.success("Файл успешно обработан");
-                //   })
-                //   .catch((e) => {
-                //     toast.error("Ошибка при обработке файла");
-                //     console.log(e);
-                //   });
               }}
               disabled={numCorrerction === "null"}
             >
               Корректировка
             </button>
             <button
-              disabled
               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
               onClick={() => {
-                fetch("http://localhost:3000/corr", {
+                fetch("http://localhost:3000/api/null-corr", {
                   method: "POST",
                   body: JSON.stringify({
                     xml: obj,
+                    num: numCorrerction,
                   }),
                   headers: {
                     "Content-Type": "application/json",
                   },
                 })
                   .then((res) => {
-                    res.text().then((data) => {
-                      setObj(JSON.parse(data));
-                      toast.success("Файл успешно обработан");
-                    });
+                    // Проверяем статус ответа
+                    if (!res.ok) {
+                      // Если статус не 2xx, выбрасываем ошибку
+                      return res.text().then((errorMessage) => {
+                        throw new Error(
+                          `Ошибка ${res.status}: ${errorMessage}`
+                        );
+                      });
+                    }
+                    // Если статус успешный, парсим данные
+                    return res.json();
                   })
-                  .catch((e) => {
-                    toast.error("Ошибка при обработке файла");
-                    console.log(e);
+                  .then((data) => {
+                    // Обновляем состояние и показываем уведомление
+                    setObj(data);
+                    toast.success("Файл успешно обработан");
+                  })
+                  .catch((error) => {
+                    // Обработка всех ошибок (сетевых или от сервера)
+                    console.error("Ошибка при обработке файла:", error);
+                    toast.error("Произошла ошибка при обработке файла");
                   });
               }}
             >
@@ -414,7 +439,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                 //     toast.error("Ошибка при обработке файла");
                 //     console.log(e);
                 //   });
-                fetch("http://localhost:3000/merge-xml", {
+                fetch("http://localhost:3000/api/merge-xml", {
                   method: "POST",
                   body: JSON.stringify({
                     xml1: firstObj,
@@ -425,14 +450,27 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                   },
                 })
                   .then((res) => {
-                    res.text().then((data) => {
-                      setObj(JSON.parse(data));
-                      toast.success("Файл успешно обработан");
-                    });
+                    // Проверяем статус ответа
+                    if (!res.ok) {
+                      // Если статус не 2xx, выбрасываем ошибку
+                      return res.text().then((errorMessage) => {
+                        throw new Error(
+                          `Ошибка ${res.status}: ${errorMessage}`
+                        );
+                      });
+                    }
+                    // Если статус успешный, парсим данные
+                    return res.json();
                   })
-                  .catch((e) => {
-                    toast.error("Ошибка при обработке файла");
-                    console.log(e);
+                  .then((data) => {
+                    // Обновляем состояние и показываем уведомление
+                    setObj(data);
+                    toast.success("Файл успешно обработан");
+                  })
+                  .catch((error) => {
+                    // Обработка всех ошибок (сетевых или от сервера)
+                    console.error("Ошибка при обработке файла:", error);
+                    toast.error("Произошла ошибка при обработке файла");
                   });
               }}
               disabled={!firstObj || !secondObj}
@@ -507,99 +545,99 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
         </div>
       ),
     },
-    {
-      title: "Сравнение",
-      value: "compare",
-      content: (
-        <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900 flex justify-between flex-col">
-          <p className=" pb-4">Сравнение</p>
-          <p className=" font-light text-lg">
-            В этом разделе вы можете сравнить два отчета между собой. <br />{" "}
-            Загрузите{" "}
-            <label className="cursor-pointer font-bold" htmlFor="first">
-              корректирующий
-            </label>{" "}
-            и{" "}
-            <label className="cursor-pointer font-bold" htmlFor="second">
-              первичный
-            </label>{" "}
-            отчеты, после чего нажмите кнопку "Сравнить". <br />
-            В результате сравнения вы получите файл отчета, в котором останутся
-            только измененные справки. <br />
-          </p>
-          <input
-            id="first"
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files?.item(0);
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  const xml = event.target?.result as string;
-                  setFirstObj(xml);
-                  console.log(xml);
-                  toast.success("Файл загружен");
-                };
-                reader.readAsText(file, "windows-1251");
-              }
-            }}
-            style={{ display: "none" }}
-          />
-          <input
-            id="second"
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files?.item(0);
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  const xml = event.target?.result as string;
-                  setSecondObj(xml);
+    // {
+    //   title: "Сравнение",
+    //   value: "compare",
+    //   content: (
+    //     <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900 flex justify-between flex-col">
+    //       <p className=" pb-4">Сравнение</p>
+    //       <p className=" font-light text-lg">
+    //         В этом разделе вы можете сравнить два отчета между собой. <br />{" "}
+    //         Загрузите{" "}
+    //         <label className="cursor-pointer font-bold" htmlFor="first">
+    //           корректирующий
+    //         </label>{" "}
+    //         и{" "}
+    //         <label className="cursor-pointer font-bold" htmlFor="second">
+    //           первичный
+    //         </label>{" "}
+    //         отчеты, после чего нажмите кнопку "Сравнить". <br />
+    //         В результате сравнения вы получите файл отчета, в котором останутся
+    //         только измененные справки. <br />
+    //       </p>
+    //       <input
+    //         id="first"
+    //         type="file"
+    //         onChange={(e) => {
+    //           const file = e.target.files?.item(0);
+    //           if (file) {
+    //             const reader = new FileReader();
+    //             reader.onload = (event) => {
+    //               const xml = event.target?.result as string;
+    //               setFirstObj(xml);
+    //               console.log(xml);
+    //               toast.success("Файл загружен");
+    //             };
+    //             reader.readAsText(file, "windows-1251");
+    //           }
+    //         }}
+    //         style={{ display: "none" }}
+    //       />
+    //       <input
+    //         id="second"
+    //         type="file"
+    //         onChange={(e) => {
+    //           const file = e.target.files?.item(0);
+    //           if (file) {
+    //             const reader = new FileReader();
+    //             reader.onload = (event) => {
+    //               const xml = event.target?.result as string;
+    //               setSecondObj(xml);
 
-                  console.log(xml);
-                  toast.success("Файл загружен");
-                };
-                reader.readAsText(file, "windows-1251");
-              }
-            }}
-            style={{ display: "none" }}
-          />
-          <div className="flex-row flex">
-            <button
-              className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
-              onClick={() => {
-                if (!firstObj || !secondObj) {
-                  toast.error("Загрузите оба файла");
-                  return;
-                }
-                compareXmls(firstObj, secondObj)
-                  .then((newXml) => {
-                    console.log(newXml);
-                    setFile(newXml);
-                    toast.success("Файл успешно обработан");
-                  })
-                  .catch((e) => {
-                    toast.error("Ошибка при обработке файла");
-                    console.log(e);
-                  });
-              }}
-              disabled={!firstObj || !secondObj}
-            >
-              Сравнить
-            </button>
-            <button
-              className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200"
-              onClick={() => {
-                setFirstObj(null);
-                setSecondObj(null);
-              }}
-            >
-              Очистить
-            </button>
-          </div>
-        </div>
-      ),
-    },
+    //               console.log(xml);
+    //               toast.success("Файл загружен");
+    //             };
+    //             reader.readAsText(file, "windows-1251");
+    //           }
+    //         }}
+    //         style={{ display: "none" }}
+    //       />
+    //       <div className="flex-row flex">
+    //         <button
+    //           className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
+    //           onClick={() => {
+    //             if (!firstObj || !secondObj) {
+    //               toast.error("Загрузите оба файла");
+    //               return;
+    //             }
+    //             compareXmls(firstObj, secondObj)
+    //               .then((newXml) => {
+    //                 console.log(newXml);
+    //                 setFile(newXml);
+    //                 toast.success("Файл успешно обработан");
+    //               })
+    //               .catch((e) => {
+    //                 toast.error("Ошибка при обработке файла");
+    //                 console.log(e);
+    //               });
+    //           }}
+    //           disabled={!firstObj || !secondObj}
+    //         >
+    //           Сравнить
+    //         </button>
+    //         <button
+    //           className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200"
+    //           onClick={() => {
+    //             setFirstObj(null);
+    //             setSecondObj(null);
+    //           }}
+    //         >
+    //           Очистить
+    //         </button>
+    //       </div>
+    //     </div>
+    //   ),
+    // },
     // {
     //   title: "Проверка",
     //   value: "check",

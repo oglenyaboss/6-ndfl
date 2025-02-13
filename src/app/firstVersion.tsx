@@ -15,7 +15,7 @@ import {
   DrawerTrigger,
 } from "@/app/components/ui/drawer";
 import { Label } from "./components/ui/label";
-import { motion } from "framer-motion";
+import { motion, MotionProps } from "framer-motion";
 import { useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -169,7 +169,9 @@ const Home: React.FC<HomeProps> = ({ changeVersion }) => {
           transition={{
             duration: 2,
           }}
-          className="absolute top-8 right-10 z-20 flex items-center justify-center"
+          className={
+            "absolute top-8 right-10 z-20 flex items-center justify-center" as string
+          }
         >
           <Switch
             id="version"

@@ -193,7 +193,7 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
                         <SelectContent align="start">
                           <SelectGroup>
                             <SelectLabel>Фильтр по {column.id}</SelectLabel>
-                            <SelectItem value={null}>Сбросить</SelectItem>
+                            <SelectItem value="">Сбросить</SelectItem>
                             {options.map((option: any) => (
                               <SelectItem key={option} value={option}>
                                 {option}
@@ -272,7 +272,7 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
                         try {
                           const text = cell.getContext().getValue();
                           console.log(text);
-                          await navigator.clipboard.writeText(text);
+                          await navigator.clipboard.writeText(text as string);
                           toast.success("Скопировано в буфер обмена");
                         } catch (error) {
                           toast.error("Не удалось скопировать в буфер обмена");
