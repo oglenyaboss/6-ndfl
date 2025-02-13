@@ -1,7 +1,6 @@
-import { toast } from "sonner";
 import { nanoid } from "nanoid";
 import iconv from "iconv-lite";
-const xml2js = require("xml2js");
+import xml2js from "xml2js";
 
 const builder = new xml2js.Builder({
   xmldec: { version: "1.0", encoding: "windows-1251" },
@@ -9,31 +8,22 @@ const builder = new xml2js.Builder({
 
 const parser = new xml2js.Parser();
 
-interface Error {
-  message: string;
-  additionalInfo?: string;
-  location?: any;
-  function?: Function;
-}
-
-async function mergeXmlFiles(xml1: any, xml2: any) {
-  const obj1 = await parser.parseStringPromise(xml1);
-  const obj2 = await parser.parseStringPromise(xml2);
+export async function mergeXmlFiles(obj1, obj2) {
   try {
     const spravDox1 = obj1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
     const spravDox2 = obj2["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
 
     const lastNomSpr = parseInt(spravDox1[spravDox1.length - 1]["$"]["НомСпр"]);
 
-    spravDox2.forEach((spravDox: any, index: any) => {
+    spravDox2.forEach((spravDox, index) => {
       spravDox["$"]["НомСпр"] = (lastNomSpr + index + 1).toString();
     });
 
     let combinedSpravDox = spravDox1.concat(spravDox2);
 
-    combinedSpravDox = combinedSpravDox.reduce((acc: any[], curr: any) => {
+    combinedSpravDox = combinedSpravDox.reduce((acc, curr) => {
       const existingEntry = acc.find(
-        (entry: any) =>
+        (entry) =>
           // entry["ПолучДох"][0]["$"]["ИННФЛ"] ===
           //   curr["ПолучДох"][0]["$"]["ИННФЛ"] &&
           entry["ПолучДох"][0]["ФИО"][0]["$"]["Имя"]?.toLowerCase() ===
@@ -46,39 +36,37 @@ async function mergeXmlFiles(xml1: any, xml2: any) {
             curr["ПолучДох"][0]["$"]["ДатаРожд"]
       );
       if (existingEntry) {
-        curr["СведДох"][0]["ДохВыч"][0]["СвСумДох"].forEach(
-          (currSvSumDoh: any) => {
-            const existingSvSumDoh = existingEntry["СведДох"]?.[0]["ДохВыч"][0][
-              "СвСумДох"
-            ].find(
-              (svSumDoh: any) =>
-                svSumDoh["$"]["Месяц"] === currSvSumDoh["$"]["Месяц"] &&
-                svSumDoh["$"]["КодДоход"] === currSvSumDoh["$"]["КодДоход"]
+        curr["СведДох"][0]["ДохВыч"][0]["СвСумДох"].forEach((currSvSumDoh) => {
+          const existingSvSumDoh = existingEntry["СведДох"]?.[0]["ДохВыч"][0][
+            "СвСумДох"
+          ].find(
+            (svSumDoh) =>
+              svSumDoh["$"]["Месяц"] === currSvSumDoh["$"]["Месяц"] &&
+              svSumDoh["$"]["КодДоход"] === currSvSumDoh["$"]["КодДоход"]
+          );
+
+          if (existingSvSumDoh) {
+            existingSvSumDoh["$"]["СумДоход"] = parseFloat(
+              (
+                parseFloat(existingSvSumDoh["$"]["СумДоход"]) +
+                parseFloat(currSvSumDoh["$"]["СумДоход"])
+              ).toFixed(2)
             );
-
-            if (existingSvSumDoh) {
-              existingSvSumDoh["$"]["СумДоход"] = parseFloat(
-                (
-                  parseFloat(existingSvSumDoh["$"]["СумДоход"]) +
-                  parseFloat(currSvSumDoh["$"]["СумДоход"])
-                ).toFixed(2)
-              );
-            } else {
-              existingEntry["СведДох"]?.[0]["ДохВыч"][0]["СвСумДох"].push(
-                currSvSumDoh
-              );
-            }
+          } else {
+            existingEntry["СведДох"]?.[0]["ДохВыч"][0]["СвСумДох"].push(
+              currSvSumDoh
+            );
           }
-        );
+        });
 
-        curr["СведДох"][0]["НалВычССИ"]?.forEach((currNalVyachSSI: any) => {
+        curr["СведДох"][0]["НалВычССИ"]?.forEach((currNalVyachSSI) => {
           existingEntry["СведДох"][0]["НалВычССИ"]?.forEach(
-            (existingNalVyachSSI: any) => {
-              currNalVyachSSI["ПредВычССИ"].forEach((currPredVyachSSI: any) => {
+            (existingNalVyachSSI) => {
+              currNalVyachSSI["ПредВычССИ"].forEach((currPredVyachSSI) => {
                 const existingPredVyachSSI = existingNalVyachSSI[
                   "ПредВычССИ"
                 ].find(
-                  (existingPredVyachSSI: any) =>
+                  (existingPredVyachSSI) =>
                     existingPredVyachSSI["$"]["КодВычет"] ===
                     currPredVyachSSI["$"]["КодВычет"]
                 );
@@ -140,9 +128,9 @@ async function mergeXmlFiles(xml1: any, xml2: any) {
       return acc;
     }, []);
 
-    combinedSpravDox = combinedSpravDox.reduce((acc: any[], curr: any) => {
+    combinedSpravDox = combinedSpravDox.reduce((acc, curr) => {
       const existingEntryIndex = acc.findIndex(
-        (entry: any) =>
+        (entry) =>
           // entry["ПолучДох"][0]["$"]["ИННФЛ"] ===
           //   curr["ПолучДох"][0]["$"]["ИННФЛ"] &&
           entry["ПолучДох"][0]["ФИО"][0]["$"]["Имя"]?.toLowerCase() ===
@@ -162,50 +150,50 @@ async function mergeXmlFiles(xml1: any, xml2: any) {
       return acc;
     }, []);
 
-    xml1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"] = combinedSpravDox;
+    obj1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"] = combinedSpravDox;
 
     const sumNalIsch1 =
-      xml1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
+      obj1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
         "СумНалИсч"
       ];
     const sumNalIsch2 =
-      xml2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
+      obj1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
         "СумНалИсч"
       ];
 
     const sumNalUder1 =
-      xml1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
+      obj1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
         "СумНалУдерж"
       ];
     const sumNalUder2 =
-      xml2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
+      obj2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
         "СумНалУдерж"
       ];
 
     const sumNalVoz1 =
-      xml1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
+      obj1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
         "СумНалВозвр"
       ];
     const sumNalVoz2 =
-      xml2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
+      obj2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
         "СумНалВозвр"
       ];
 
-    xml1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
+    obj1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
       "СумНалИсч"
     ] = +sumNalIsch1 + +sumNalIsch2;
-    xml1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
+    obj1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0]["$"][
       "СумНалУдерж"
     ] = +sumNalUder1 + +sumNalUder2;
 
-    return xml1;
+    return obj1;
   } catch (error) {
     console.error(error);
     throw new Error("Ошибка при обработке XML");
   }
 }
 
-async function updateXml(xml: any) {
+export async function correctUderzhTax(xml) {
   try {
     const header = xml?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"][0];
 
@@ -217,9 +205,6 @@ async function updateXml(xml: any) {
       header["$"]["СумНалНеУдерж"] = 0;
       header["$"]["СумНалИзлУдерж"] = 0;
     } else {
-      toast.warning(
-        "Сумма налога к возврату не равна нулю, проверьте удержанный налог!"
-      );
       header["$"]["СумНалУдерж"] = +sumNalIsch + +sumNalVoz;
       header["$"]["СумНалНеУдерж"] = 0;
       header["$"]["СумНалИзлУдерж"] = 0;
@@ -229,7 +214,7 @@ async function updateXml(xml: any) {
 
     console.log(spravDohs);
 
-    spravDohs.forEach((spravDoh: any) => {
+    spravDohs.forEach((spravDoh) => {
       const svedDoh = spravDoh["СведДох"];
       const nalIsch = svedDoh[0]["СумИтНалПер"][0]["$"]["НалИсчисл"];
       const nalVoz = svedDoh[0]["СумИтНалПер"][0]["$"]["НалВозвр"];
@@ -242,9 +227,6 @@ async function updateXml(xml: any) {
         svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдержЛиш"] = 0;
         console.log(nalVoz);
       } else {
-        toast.warning(
-          "Сумма налога к возврату не равна нулю, проверьте удержанный налог в 2-ндфл!"
-        );
         svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдерж"] = +nalIsch + +nalVoz;
         svedDoh[0]["СумИтНалПер"][0]["$"]["НалУдержЛиш"] = 0;
       }
@@ -252,118 +234,31 @@ async function updateXml(xml: any) {
 
     return xml;
   } catch (error) {
+    console.error(error);
     throw new Error("Ошибка при обработке XML");
   }
 }
 
-// async function updateXMLWithCSV(csvDataString: string, xmlDataString: string) {
-//   // Parse CSV string and convert it to array of objects
-//   const csvData: any = [];
-//   csvParser({ separator: ";" })
-//     .on("data", (row: any) => csvData.push(row))
-//     .write(csvDataString);
-//   console.log(csvData);
-//   // Parse XML string and convert it to JavaScript obƒject
-//   const xmlDoc = await parser.parseStringPromise(xmlDataString);
-
-//   // Update XML object with data from CSV
-//   for (const row of csvData) {
-//     for (const spravDoh of xmlDoc?.["Файл"]["Документ"][0]["НДФЛ6.2"][0][
-//       "СправДох"
-//     ]) {
-//       if (
-//         spravDoh["ПолучДох"][0]["ФИО"][0]["$"]["Фамилия"] === row["Фамилия"] &&
-//         spravDoh["ПолучДох"][0]["ФИО"][0]["$"]["Имя"] === row["Имя"] &&
-//         spravDoh["ПолучДох"][0]["ФИО"][0]["$"]["Отчество"] === row["Отчество"]
-//       ) {
-//         for (const svSumDoh of spravDoh["СведДох"][0]["ДохВыч"][0][
-//           "СвСумДох"
-//         ]) {
-//           if (
-//             svSumDoh["$"]["Месяц"] === "01" &&
-//             svSumDoh["$"]["КодДоход"] === "2000"
-//           ) {
-//             if (row["Доход"]) {
-//               svSumDoh["$"]["СумДоход"] = parseFloat(
-//                 (
-//                   parseFloat(svSumDoh["$"]["СумДоход"]) +
-//                   parseFloat(row["Доход"].replace(",", ".")) / 0.87
-//                 ).toFixed(2)
-//               );
-//               spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["СумДохОбщ"] =
-//                 parseFloat(
-//                   (
-//                     parseFloat(
-//                       spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["СумДохОбщ"]
-//                     ) + parseFloat(row["Доход"].replace(",", "."))
-//                   ).toFixed(2)
-//                 );
-//               spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалБаза"] =
-//                 parseFloat(
-//                   parseFloat(
-//                     spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["СумДохОбщ"] +
-//                       parseFloat(row["Доход"].replace(",", "."))
-//                   ).toFixed(2)
-//                 );
-//             }
-//             break;
-//           }
-//         }
-//       }
-//     }
-//   }
-
-//   // Convert updated XML object back to XML string
-//   const newXmlData = builder.buildObject(xmlDoc);
-
-//   return newXmlData;
-// }
-
-// async function deleteParmams(xml: any) {
-//   const obj = await parser.parseStringPromise(xml);
-//   console.log(obj);
-
-//   obj["Файл"]["Документ"][0]["РасчетСВ"][0]["ПерсСвСтрахЛиц"].forEach(
-//     (person: any) => {
-//       // Проход по каждому СвВыплМК и зануление СумВыпл и НачислСВ
-//       person["СвВыплСВОПС"][0]["СвВыпл"][0]["СвВыплМК"].forEach(
-//         (payment: any) => {
-//           payment["$"]["СумВыпл"] = "0";
-//           if (payment["$"]["НачислСВ"]) {
-//             payment["$"]["НачислСВ"] = "0";
-//           }
-//           if (payment["$"]["ВыплОПС"]) {
-//             payment["$"]["ВыплОПС"] = "0";
-//           }
-//         }
-//       );
-//     }
-//   );
-//   const newXml = builder.buildObject(obj);
-
-//   return newXml;
-// }
-
-async function correctNegativeIncome(xml: any) {
+export async function correctNegativeIncome(xml) {
   try {
     const spravDohs = xml?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
     let sumDoh = 0;
 
     console.log(spravDohs);
 
-    spravDohs.forEach((spravDoh: any) => {
+    spravDohs.forEach((spravDoh) => {
       let dohVych = spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"];
       const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"]; // Получаем ФИО
 
-      let groupedDohVych: any[] = [];
-      dohVych.forEach((svSumDoh: any) => {
+      let groupedDohVych = [];
+      dohVych.forEach((svSumDoh) => {
         sumDoh += parseFloat(svSumDoh["$"]["СумДоход"]);
         const month = svSumDoh["$"]["Месяц"];
         const kodDohod = svSumDoh["$"]["КодДоход"];
         const sumDohod = parseFloat(svSumDoh["$"]["СумДоход"]);
 
         const existingEntry = groupedDohVych.find(
-          (entry: any) =>
+          (entry) =>
             entry["$"]["Месяц"] === month && entry["$"]["КодДоход"] === kodDohod
         );
 
@@ -376,7 +271,7 @@ async function correctNegativeIncome(xml: any) {
         }
       });
 
-      groupedDohVych.sort((a: any, b: any) => {
+      groupedDohVych.sort((a, b) => {
         const monthA = parseInt(a["$"]["Месяц"], 10);
         const monthB = parseInt(b["$"]["Месяц"], 10);
 
@@ -388,14 +283,13 @@ async function correctNegativeIncome(xml: any) {
 
       // Проверяем, есть ли запись с месяцем '01'
       const hasJanuary = groupedDohVych.some(
-        (entry: any) =>
-          entry["$"]["Месяц"] === "01" && entry["$"]["СумДоход"] > 0
+        (entry) => entry["$"]["Месяц"] === "01" && entry["$"]["СумДоход"] > 0
       );
 
       if (!hasJanuary) {
         // Находим запись с месяцем '02'
         const februaryEntry = groupedDohVych.find(
-          (entry: any) => entry["$"]["Месяц"] === "02"
+          (entry) => entry["$"]["Месяц"] === "02"
         );
 
         if (februaryEntry) {
@@ -432,7 +326,7 @@ async function correctNegativeIncome(xml: any) {
           }
 
           // Сортируем массив снова, чтобы учесть новую запись
-          groupedDohVych.sort((a: any, b: any) => {
+          groupedDohVych.sort((a, b) => {
             const monthA = parseInt(a["$"]["Месяц"], 10);
             const monthB = parseInt(b["$"]["Месяц"], 10);
 
@@ -444,7 +338,7 @@ async function correctNegativeIncome(xml: any) {
       let hasNegative;
       do {
         hasNegative = false;
-        groupedDohVych.forEach((svSumDoh: any) => {
+        groupedDohVych.forEach((svSumDoh) => {
           // Используем groupedDohVych вместо dohVych
           const sumDohod = parseFloat(svSumDoh["$"]["СумДоход"]);
           const kodDohod = svSumDoh["$"]["КодДоход"];
@@ -452,7 +346,7 @@ async function correctNegativeIncome(xml: any) {
           if (sumDohod < 0) {
             const positiveIncomeIndex = groupedDohVych.findIndex(
               // Используем groupedDohVych вместо dohVych
-              (doh: any) =>
+              (doh) =>
                 doh["$"]["КодДоход"] === kodDohod &&
                 parseFloat(doh["$"]["СумДоход"]) > 0
             );
@@ -477,9 +371,6 @@ async function correctNegativeIncome(xml: any) {
               console.log(
                 `Не найден код дохода для ${fio["Фамил"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
               );
-              toast.warning(
-                `Не найден код дохода для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-              );
             }
           }
         });
@@ -488,7 +379,7 @@ async function correctNegativeIncome(xml: any) {
       // Удалить нулевые строки
       spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"] = groupedDohVych.filter(
         // Используем groupedDohVych вместо dohVych
-        (svSumDoh: any) => parseFloat(svSumDoh["$"]["СумДоход"]) !== 0
+        (svSumDoh) => parseFloat(svSumDoh["$"]["СумДоход"]) !== 0
       );
     });
 
@@ -497,7 +388,7 @@ async function correctNegativeIncome(xml: any) {
     throw new Error("Ошибка при обработке XML");
   }
 }
-async function correctTax(xml: any) {
+export async function correctTax(xml) {
   try {
     const spravDohs = xml?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
 
@@ -505,16 +396,13 @@ async function correctTax(xml: any) {
     let sumNalIschSec15 = 0;
     let sumNalIschSec30 = 0;
 
-    spravDohs.forEach((spravDoh: any) => {
+    spravDohs.forEach((spravDoh) => {
       const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
-      spravDoh["СведДох"].forEach((spravDoh: any) => {
+      spravDoh["СведДох"].forEach((spravDoh) => {
         const stavka = spravDoh["$"]["Ставка"];
         const nalBase = spravDoh["СумИтНалПер"][0]["$"]["НалБаза"];
         console.log(spravDoh);
         if (nalBase < 10) {
-          toast.warning(
-            `Налоговая база меньше 10 для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-          );
           console.log(
             `Налоговая база меньше 10 для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
           );
@@ -522,9 +410,6 @@ async function correctTax(xml: any) {
         }
         if (nalBase === 0 || nalBase === undefined) {
           const fio = spravDoh["ПолучДох"][0]["ФИО"][0]["$"];
-          toast.warning(
-            `Не найдена налоговая база для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
-          );
           console.log(
             `Не найдена налоговая база для ${fio["Фамилия"]}, ${fio["Имя"]}, ${fio["Отчество"]}`
           );
@@ -546,7 +431,7 @@ async function correctTax(xml: any) {
 
     const header = xml?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["РасчСумНал"];
 
-    header.forEach((header: any) => {
+    header.forEach((header) => {
       if (header["$"]["Ставка"] === "13") {
         header["$"]["СумНалИсч"] = sumNalIschSec13;
       } else if (header["$"]["Ставка"] === "15") {
@@ -563,7 +448,7 @@ async function correctTax(xml: any) {
   }
 }
 
-async function setNumCorr(obj: any, num: string) {
+export async function setNumCorr(obj, num) {
   try {
     if (parseInt(num) < 10) {
       obj.Файл.Документ[0].$.НомКорр = `0${num}`;
@@ -574,7 +459,7 @@ async function setNumCorr(obj: any, num: string) {
     if (obj.Файл.Документ[0].$.Период === "34") {
       const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
 
-      spravDohs.forEach((spravDoh: any) => {
+      spravDohs.forEach((spravDoh) => {
         if (parseInt(num) < 10) {
           spravDoh["$"]["НомКорр"] = `0${num}`;
         } else {
@@ -582,15 +467,13 @@ async function setNumCorr(obj: any, num: string) {
         }
       });
     }
-
-    const newXml = builder.buildObject(obj);
-    return newXml;
+    return obj;
   } catch (error) {
     throw new Error("Ошибка при обработке XML");
   }
 }
 
-async function nullCorr(obj: any) {
+export async function nullCorr(obj) {
   try {
     obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["$"]["СумНалВоз"] = 0;
     obj["Файл"]["Документ"][0]["НДФЛ6.2"][0]["ОбязНА"][0]["$"]["СумНалУд"] = 0;
@@ -617,31 +500,31 @@ async function nullCorr(obj: any) {
     });
     if (obj.Файл.Документ[0].$.Период === "34") {
       const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
-      spravDohs.forEach((spravDoh: any) => {
+      spravDohs.forEach((spravDoh) => {
         spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалБаза"] = 0;
         spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["СумДохОбщ"] = 0;
         spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалИсчисл"] = 0;
         spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалУдерж"] = 0;
+        spravDoh["$"]["НомКорр"] = `99`;
         if (spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалПеречисл"]) {
           spravDoh["СведДох"][0]["СумИтНалПер"][0]["$"]["НалПеречисл"] = 0;
         }
         delete spravDoh["СведДох"][0]["НалВычССИ"];
-        spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"].forEach((doh: any) => {
+        spravDoh["СведДох"][0]["ДохВыч"][0]["СвСумДох"].forEach((doh) => {
           doh.$.СумДоход = 0;
           delete doh.СвСумВыч;
         });
       });
     }
 
-    const readyXml = setNumCorr(obj, "99");
-    return readyXml;
+    return obj;
   } catch (error) {
     console.error(error);
     throw new Error("Ошибка при обработке XML");
   }
 }
 
-async function kvartal(obj: any) {
+export async function kvartal(obj) {
   try {
     const sumNalIsch =
       obj?.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНалИсч;
@@ -660,49 +543,17 @@ async function kvartal(obj: any) {
   }
 }
 
-interface TaxInfo {
-  $: {
-    КБК: string;
-    Год: string;
-    КППДекл: string;
-    ОКТМО: string;
-    СумНалогАванс: string;
-    Период: string;
-    НомерМесКварт: string;
-  };
-}
-
-interface TableRow {
-  INN: string;
-  KPP: string;
-  OKTMO: string;
-  CYMMA: string;
-  "KOD PERIODA": string;
-}
-
-async function processXmlData(files: string[]): Promise<TableRow[]> {
-  const dataMap: Record<
-    string,
-    {
-      inn: string;
-      date: Date;
-      kpp: string;
-      oktmo: string;
-      sum: string;
-      period: string;
-      id: string;
-    }
-  > = {};
+export async function processXmlData(files) {
+  const dataMapc = {};
 
   try {
     files.forEach((xmlString) => {
-      xml2js.parseString(xmlString, (err: any, result: any) => {
+      xml2js.parseString(xmlString, (err, result) => {
         if (err) {
           console.error(`Ошибка при обработке XML: ${err}`);
           return;
         }
         if (!result.Файл["$"].ИдФайл.includes("UV")) {
-          toast.error("Файл не является файлом с налоговой информацией");
           return;
         }
         const document = result.Файл.Документ[0];
@@ -710,7 +561,7 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
         const isoDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
         const documentDate = new Date(isoDate);
         console.log(document);
-        const taxInfos: TaxInfo[] = document.УвИсчСумНалог;
+        const taxInfos = document.УвИсчСумНалог;
 
         const inn = document.СвНП[0].НПЮЛ[0]["$"].ИННЮЛ;
 
@@ -786,11 +637,10 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
   }
 }
 
-async function parseXml(xml: any) {
+export async function parseXml(xml) {
   try {
     const obj = await parser.parseStringPromise(xml);
     if (obj.Файл["$"].ИдФайл.includes("UT")) {
-      toast.error("Файл является уведомлением, загрузите его по кнопке ниже");
       return;
     }
     return obj;
@@ -799,25 +649,25 @@ async function parseXml(xml: any) {
   }
 }
 
-async function compareXmls(xml1: any, xml2: any) {
+export async function compareXmls(xml1, xml2) {
   const spravDohs1 = xml1?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
   const spravDohs2 = xml2?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
 
   // Функция сравнения для проверки идентичности двух справок
-  const areEqual = (sprav1: any, sprav2: any) => {
+  const areEqual = (sprav1, sprav2) => {
     return JSON.stringify(sprav1) === JSON.stringify(sprav2);
   };
 
   // Удаление из spravDohs1 справок, которые также присутствуют в spravDohs2
-  const uniqueSpravDohs1 = spravDohs1.filter((sprav1: any) => {
-    const hasMatch = spravDohs2.some((sprav2: any) => {
+  const uniqueSpravDohs1 = spravDohs1.filter((sprav1) => {
+    const hasMatch = spravDohs2.some((sprav2) => {
       const equal = areEqual(sprav1, sprav2);
       return equal;
     });
     return !hasMatch;
   });
 
-  uniqueSpravDohs1.forEach((sprav: any, index: number) => {
+  uniqueSpravDohs1.forEach((sprav, index) => {
     sprav["$"]["НомСпр"] = index + 1;
   });
 
@@ -830,23 +680,16 @@ async function compareXmls(xml1: any, xml2: any) {
   return newXml;
 }
 
-async function downloadFile(obj: any) {
+export async function downloadFile(obj) {
   try {
     const xml = builder.buildObject(obj);
     const name = `${obj.Файл["$"].ИдФайл}.xml`;
 
     const content = iconv.encode(xml, "win1251");
 
-    const blob = new Blob(
-      [
-        content.buffer instanceof ArrayBuffer
-          ? content.buffer
-          : new ArrayBuffer(0),
-      ],
-      {
-        type: "application/octet-stream",
-      }
-    );
+    const blob = new Blob([content.buffer], {
+      type: "application/octet-stream",
+    });
 
     const url = URL.createObjectURL(blob);
 
@@ -864,8 +707,8 @@ async function downloadFile(obj: any) {
   }
 }
 
-async function check(obj: any) {
-  const errors: Error[] = [];
+export async function check(obj) {
+  const errors = [];
 
   const sumDoh =
     obj.Файл.Документ[0]["НДФЛ6.2"][0].РасчСумНал[0].$.СумНачислНач; //???????
@@ -908,17 +751,17 @@ async function check(obj: any) {
   return errors;
 }
 
-export {
-  parseXml,
-  mergeXmlFiles,
-  updateXml,
-  correctNegativeIncome,
-  correctTax,
-  setNumCorr,
-  nullCorr,
-  kvartal,
-  processXmlData,
-  downloadFile,
-  compareXmls,
-  check,
-};
+// export {
+//   parseXml,
+//   mergeXmlFiles,
+//   updateXml,
+//   correctNegativeIncome,
+//   correctUderzhTax,
+//   setNumCorr,
+//   nullCorr,
+//   kvartal,
+//   processXmlData,
+//   downloadFile,
+//   compareXmls,
+//   check,
+// };
