@@ -48,7 +48,6 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
   const [uvedCSV, setUvedCSV] = React.useState<any>(null);
   const [filterOptions, setFilterOptions] = React.useState<any>(null);
   const [obj, setObj] = React.useState<any>(null);
-  const [errors, setErrors] = React.useState<any>(null);
 
   const tabs = [
     {
@@ -540,6 +539,104 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
               }}
             >
               Скачать отчет
+            </button>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Прочее",
+      value: "Other",
+      content: (
+        <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900 flex flex-col justify-between">
+          <p>Прочее</p>
+          <p className=" font-light text-lg">
+            В этой вкладке вы можете использовать другие функции.
+            <br /> <br /> Краткое описание функций:
+            <br /> 1. Исправить нумерацию справок - нумерация справок по
+            возрастанию. <br />
+            2. Исправить порядок справок - порядок справок по алфавиту. <br />
+            <br />
+            <br />
+          </p>
+          <div className="flex-row flex">
+            <button
+              className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
+              onClick={() => {
+                fetch("/api/correct-numorder", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    xml: obj,
+                  }),
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                })
+                  .then((res) => {
+                    // Проверяем статус ответа
+                    if (!res.ok) {
+                      // Если статус не 2xx, выбрасываем ошибку
+                      return res.text().then((errorMessage) => {
+                        throw new Error(
+                          `Ошибка ${res.status}: ${errorMessage}`
+                        );
+                      });
+                    }
+                    // Если статус успешный, парсим данные
+                    return res.json();
+                  })
+                  .then((data) => {
+                    // Обновляем состояние и показываем уведомление
+                    setObj(data);
+                    toast.success("Файл успешно обработан");
+                  })
+                  .catch((error) => {
+                    // Обработка всех ошибок (сетевых или от сервера)
+                    console.error("Ошибка при обработке файла:", error);
+                    toast.error("Произошла ошибка при обработке файла");
+                  });
+              }}
+            >
+              Исправить нумерацию справок
+            </button>
+            <button
+              className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
+              onClick={() => {
+                fetch("/api/correct-abcorder", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    xml: obj,
+                  }),
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                })
+                  .then((res) => {
+                    // Проверяем статус ответа
+                    if (!res.ok) {
+                      // Если статус не 2xx, выбрасываем ошибку
+                      return res.text().then((errorMessage) => {
+                        throw new Error(
+                          `Ошибка ${res.status}: ${errorMessage}`
+                        );
+                      });
+                    }
+                    // Если статус успешный, парсим данные
+                    return res.json();
+                  })
+                  .then((data) => {
+                    // Обновляем состояние и показываем уведомление
+                    setObj(data);
+                    toast.success("Файл успешно обработан");
+                  })
+                  .catch((error) => {
+                    // Обработка всех ошибок (сетевых или от сервера)
+                    console.error("Ошибка при обработке файла:", error);
+                    toast.error("Произошла ошибка при обработке файла");
+                  });
+              }}
+            >
+              Исправить порядок справок
             </button>
           </div>
         </div>
