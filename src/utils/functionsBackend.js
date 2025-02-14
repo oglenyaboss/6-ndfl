@@ -8,6 +8,55 @@ const builder = new xml2js.Builder({
 
 const parser = new xml2js.Parser();
 
+export async function correctNumOrder(obj) {
+  try {
+    const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
+
+    spravDohs.forEach((spravDoh, index) => {
+      spravDoh["$"]["НомСпр"] = (index + 1).toString();
+    });
+
+    return obj;
+  } catch (error) {
+    throw new Error("Ошибка при обработке XML");
+  }
+}
+
+export async function correctAbcOrder(obj) {
+  try {
+    const spravDohs = obj?.["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
+
+    spravDohs.sort((a, b) => {
+      const fioA = a["ПолучДох"][0]["ФИО"][0]["$"];
+      const fioB = b["ПолучДох"][0]["ФИО"][0]["$"];
+
+      if (fioA["Фамилия"] < fioB["Фамилия"]) {
+        return -1;
+      }
+      if (fioA["Фамилия"] > fioB["Фамилия"]) {
+        return 1;
+      }
+      if (fioA["Имя"] < fioB["Имя"]) {
+        return -1;
+      }
+      if (fioA["Имя"] > fioB["Имя"]) {
+        return 1;
+      }
+      if (fioA["Отчество"] < fioB["Отчество"]) {
+        return -1;
+      }
+      if (fioA["Отчество"] > fioB["Отчество"]) {
+        return 1;
+      }
+      return 0;
+    });
+
+    return obj;
+  } catch (error) {
+    throw new Error("Ошибка при обработке XML");
+  }
+}
+
 export async function mergeXmlFiles(obj1, obj2) {
   try {
     const spravDox1 = obj1["Файл"]["Документ"][0]["НДФЛ6.2"][0]["СправДох"];
