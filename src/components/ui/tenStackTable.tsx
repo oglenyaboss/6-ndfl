@@ -63,6 +63,12 @@ import { toast } from "sonner";
 
 export const columns: ColumnDef<TableRow>[] = [
   {
+    accessorKey: "KBK",
+    header: "КБК",
+    enableColumnFilter: true,
+    enableSorting: true,
+  },
+  {
     accessorKey: "INN",
     header: "ИНН",
     enableColumnFilter: true,
@@ -155,6 +161,8 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
     },
   });
 
+  console.log(props.options);
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-start py-4">
@@ -179,12 +187,18 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
                       ? props.options["KOD PERIODA"]
                       : column.id === "INN"
                       ? props.options.INN
+                      : column.id === "KBK"
+                      ? props.options.KBK
                       : [];
                   return (
                     <div key={column.id}>
                       <Select
                         onValueChange={(value) => {
-                          column.setFilterValue(value);
+                          if (value === "RESET_FILTER") {
+                            column.setFilterValue(undefined); // Clear the filter
+                          } else {
+                            column.setFilterValue(value);
+                          }
                         }}
                       >
                         <SelectTrigger>
@@ -193,7 +207,9 @@ export function DataTableDemo(props: { data: TableRow[]; options: any }) {
                         <SelectContent align="start">
                           <SelectGroup>
                             <SelectLabel>Фильтр по {column.id}</SelectLabel>
-                            <SelectItem value="">Сбросить</SelectItem>
+                            <SelectItem value="RESET_FILTER">
+                              Сбросить
+                            </SelectItem>
                             {options.map((option: any) => (
                               <SelectItem key={option} value={option}>
                                 {option}

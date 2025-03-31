@@ -673,6 +673,7 @@ interface TaxInfo {
 }
 
 interface TableRow {
+  KBK: any;
   INN: string;
   KPP: string;
   OKTMO: string;
@@ -691,6 +692,7 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
       sum: string;
       period: string;
       id: string;
+      kbk: string;
     }
   > = {};
 
@@ -718,13 +720,14 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
           if (
             taxInfo["$"].КБК !== "18210102010011000110" &&
             taxInfo["$"].КБК !== "18210102010013000110" &&
-            taxInfo["$"].КБК !== "18210102080011000110"
+            taxInfo["$"].КБК !== "18210102080011000110" &&
+            taxInfo["$"].КБК !== "18210102210011000110"
             // taxInfo["$"].КБК !== "18210102010013000110"
           ) {
             return;
           }
 
-          const key = `${taxInfo["$"].КППДекл}_${taxInfo["$"].ОКТМО}_${taxInfo["$"].Период}_${taxInfo["$"].НомерМесКварт}_${inn}`;
+          const key = `${taxInfo["$"].КППДекл}_${taxInfo["$"].ОКТМО}_${taxInfo["$"].Период}_${taxInfo["$"].НомерМесКварт}_${inn}_${taxInfo["$"].КБК}`;
           const existingData = dataMap[key];
           if (!existingData || documentDate === existingData.date) {
             dataMap[key] = {
@@ -733,6 +736,7 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
               date: documentDate,
               kpp: taxInfo["$"].КППДекл,
               oktmo: taxInfo["$"].ОКТМО,
+              kbk: taxInfo["$"].КБК,
               sum: (
                 parseFloat(taxInfo["$"].СумНалогАванс) +
                 (existingData ? parseFloat(existingData.sum) : 0)
@@ -742,6 +746,7 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
           } else if (!existingData || documentDate > existingData.date) {
             dataMap[key] = {
               inn: inn,
+              kbk: taxInfo["$"].КБК,
               id: nanoid(),
               date: documentDate,
               kpp: taxInfo["$"].КППДекл,
@@ -758,6 +763,7 @@ async function processXmlData(files: string[]): Promise<TableRow[]> {
       INN: item.inn,
       KPP: item.kpp,
       OKTMO: item.oktmo,
+      KBK: item.kbk,
       CYMMA: item.sum,
       "KOD PERIODA": item.period,
     }));

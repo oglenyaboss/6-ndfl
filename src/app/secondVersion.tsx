@@ -839,18 +839,23 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
     const oktmoSet = new Set(tableData.map((item) => item.OKTMO));
     const periodSet = new Set(tableData.map((item) => item["KOD PERIODA"]));
     const innSet = new Set(tableData.map((item) => item.INN));
+    const kbkSet = new Set(
+      tableData.map((item) => item.KBK).filter((item) => item !== undefined)
+    );
 
     // Преобразование Set обратно в массив и сортировка
     const kppOptions = Array.from(kppSet).sort((a, b) => a - b);
     const oktmoOptions = Array.from(oktmoSet).sort((a, b) => a - b);
     const innOptions = Array.from(innSet).sort((a, b) => a - b);
     const periodOptions = Array.from(periodSet);
+    const kbkOptions = Array.from(kbkSet).sort((a, b) => a - b);
 
     setFilterOptions({
       INN: innOptions,
       KPP: kppOptions,
       OKTMO: oktmoOptions,
       "KOD PERIODA": periodOptions,
+      KBK: kbkOptions,
     });
   }, [tableData]);
 
@@ -990,10 +995,10 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                         setTableData(tableData);
                         console.log(tableData);
                         const csvData = [
-                          "INN;KPP;OKTMO;CYMMA;KOD PERIODA",
+                          "INN;KPP;OKTMO;CYMMA;KOD PERIODA;KBK",
                           ...Object.values(tableData).map(
                             (item) =>
-                              `${item.INN};${item.KPP};${item.OKTMO};${item.CYMMA};${item["KOD PERIODA"]}`
+                              `${item.INN};${item.KPP};${item.OKTMO};${item.CYMMA};${item["KOD PERIODA"]};${item.KBK}`
                           ),
                         ].join("\n");
                         setUvedCSV(csvData);
@@ -1071,90 +1076,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
           </motion.div>
         )}
       </motion.div>
-      {/* {obj && (
-        <motion.div
-          style={{
-            scrollSnapAlign: "center",
-          }}
-          className="w-full h-screen dark:bg-grid-white/[0.2] bg-grid-black/[0.2] relative flex items-center justify-center flex-col"
-        >
-          <p>{`Период отчета: ${
-            obj.Файл.Документ[0].$.Период === "21"
-              ? "1 квартал"
-              : obj.Файл.Документ[0].$.Период === "31"
-              ? "Полугодие"
-              : obj.Файл.Документ[0].$.Период === "33"
-              ? "9 месяцев"
-              : "Годовой"
-          } за ${obj.Файл.Документ[0].$.ОтчетГод}`}</p>
-          <p>{`Код налогового органа ${obj.Файл.Документ[0].$.КодНО}`}</p>
-          <p>{`ОКТМО ${obj.Файл.Документ[0].СвНП[0].$.ОКТМО}`}</p>
-          <p>{`ИНН ${obj.Файл.Документ[0].СвНП[0].НПЮЛ[0].$.ИННЮЛ}`}</p>
-          <p>{`КПП ${obj.Файл.Документ[0].СвНП[0].НПЮЛ[0].$.КПП}`}</p>
-          <p>
-            {`Наименование ${obj.Файл.Документ[0].СвНП[0].НПЮЛ[0].$.НаимОрг}`}
-          </p>
-          <Input
-            placeholder="Введите код налогового органа"
-            // type="number"
-            value={obj.Файл.Документ[0].$.КодНО}
-            onChange={(e) => {
-              const value = e.target.value;
-              // if (value.length != 4) {
-              //   toast.error("Код налогового органа должен быть 4 символа");
-              //   return;
-              // }
-              setObj((prev) => {
-                return {
-                  ...prev,
-                  Файл: {
-                    ...prev.Файл,
-                    Документ: [
-                      {
-                        ...prev.Файл.Документ[0],
-                        $: {
-                          ...prev.Файл.Документ[0].$,
-                          КодНО: value,
-                        },
-                      },
-                    ],
-                  },
-                };
-              });
-            }}
-          />
-          <Input
-            placeholder="Введите ОКТМО"
-            // type="number"
-            value={obj.Файл.Документ[0].СвНП[0].$.ОКТМО}
-            onChange={(e) => {
-              const value = e.target.value;
-              setObj((prev) => {
-                return {
-                  ...prev,
-                  Файл: {
-                    ...prev.Файл,
-                    Документ: [
-                      {
-                        ...prev.Файл.Документ[0],
-                        СвНП: [
-                          {
-                            ...prev.Файл.Документ[0].СвНП[0],
-                            $: {
-                              ...prev.Файл.Документ[0].СвНП[0].$,
-                              ОКТМО: value,
-                            },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                };
-              });
-            }}
-          />
-        </motion.div>
-      )} */}
+
       {(obj || file) && (
         <motion.div
           style={{
