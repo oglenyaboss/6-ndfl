@@ -1,39 +1,14 @@
-import { NextPage } from "next";
 import { SparklesCore } from "@/components/uiV2/sparkles";
 import { motion } from "framer-motion";
 import { LampContainer } from "@/components/uiV2/lamp";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "./components/ui/label";
-import { Input } from "./components/ui/input";
 import { toast } from "sonner";
 import React from "react";
-import {
-  mergeXmlFiles,
-  updateXml,
-  correctNegativeIncome,
-  correctTax,
-  setNumCorr,
-  nullCorr,
-  kvartal,
-  processXmlData,
-  downloadFile,
-  compareXmls,
-  parseXml,
-  check,
-} from "@/utils/functions";
+import { processXmlData, downloadFile, parseXml } from "@/utils/functions";
 import DataTableDemo from "@/components/ui/tenStackTable";
 import { BackgroundBeams } from "@/components/uiV2/bgBeams";
 import { Tabs } from "@/components/uiV2/tabs";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "./components/ui/drawer";
-import { LinkPreview } from "@/components/uiV2/additional-info";
 
 type HomeProps = {
   changeVersion: () => void;
@@ -206,40 +181,6 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
         </div>
       ),
     },
-    // {
-    //   title: "Квартал",
-    //   value: "kvartal",
-    //   content: (
-    //     <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900 flex justify-between flex-col">
-    //       <p className=" pb-4">Квартальный</p>
-    //       <p className=" font-light text-lg">
-    //         В этой вкладке вы можете собрать второй раздел отчета по суммам из
-    //         уведомлений. <br /> Краткое описание функций:
-    //         <br />
-    //         1. Собрать - собирает второй раздел отчета по суммам из уведомлений.{" "}
-    //         <br />
-    //       </p>
-    //       <div className="flex-row flex">
-    //         <button
-    //           className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
-    //           onClick={async () => {
-    //             try {
-    //               const newXml = await kvartal(obj);
-    //               console.log(newXml);
-    //               setFile(newXml);
-    //               toast.success("Файл обработан");
-    //             } catch (e) {
-    //               toast.error("Ошибка при обработке файла");
-    //               console.log(e);
-    //             }
-    //           }}
-    //         >
-    //           Собрать
-    //         </button>
-    //       </div>
-    //     </div>
-    //   ),
-    // },
     {
       title: "Корректировка",
       value: "correction",
@@ -642,197 +583,7 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
         </div>
       ),
     },
-    // {
-    //   title: "Сравнение",
-    //   value: "compare",
-    //   content: (
-    //     <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900 flex justify-between flex-col">
-    //       <p className=" pb-4">Сравнение</p>
-    //       <p className=" font-light text-lg">
-    //         В этом разделе вы можете сравнить два отчета между собой. <br />{" "}
-    //         Загрузите{" "}
-    //         <label className="cursor-pointer font-bold" htmlFor="first">
-    //           корректирующий
-    //         </label>{" "}
-    //         и{" "}
-    //         <label className="cursor-pointer font-bold" htmlFor="second">
-    //           первичный
-    //         </label>{" "}
-    //         отчеты, после чего нажмите кнопку "Сравнить". <br />
-    //         В результате сравнения вы получите файл отчета, в котором останутся
-    //         только измененные справки. <br />
-    //       </p>
-    //       <input
-    //         id="first"
-    //         type="file"
-    //         onChange={(e) => {
-    //           const file = e.target.files?.item(0);
-    //           if (file) {
-    //             const reader = new FileReader();
-    //             reader.onload = (event) => {
-    //               const xml = event.target?.result as string;
-    //               setFirstObj(xml);
-    //               console.log(xml);
-    //               toast.success("Файл загружен");
-    //             };
-    //             reader.readAsText(file, "windows-1251");
-    //           }
-    //         }}
-    //         style={{ display: "none" }}
-    //       />
-    //       <input
-    //         id="second"
-    //         type="file"
-    //         onChange={(e) => {
-    //           const file = e.target.files?.item(0);
-    //           if (file) {
-    //             const reader = new FileReader();
-    //             reader.onload = (event) => {
-    //               const xml = event.target?.result as string;
-    //               setSecondObj(xml);
-
-    //               console.log(xml);
-    //               toast.success("Файл загружен");
-    //             };
-    //             reader.readAsText(file, "windows-1251");
-    //           }
-    //         }}
-    //         style={{ display: "none" }}
-    //       />
-    //       <div className="flex-row flex">
-    //         <button
-    //           className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
-    //           onClick={() => {
-    //             if (!firstObj || !secondObj) {
-    //               toast.error("Загрузите оба файла");
-    //               return;
-    //             }
-    //             compareXmls(firstObj, secondObj)
-    //               .then((newXml) => {
-    //                 console.log(newXml);
-    //                 setFile(newXml);
-    //                 toast.success("Файл успешно обработан");
-    //               })
-    //               .catch((e) => {
-    //                 toast.error("Ошибка при обработке файла");
-    //                 console.log(e);
-    //               });
-    //           }}
-    //           disabled={!firstObj || !secondObj}
-    //         >
-    //           Сравнить
-    //         </button>
-    //         <button
-    //           className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200"
-    //           onClick={() => {
-    //             setFirstObj(null);
-    //             setSecondObj(null);
-    //           }}
-    //         >
-    //           Очистить
-    //         </button>
-    //       </div>
-    //     </div>
-    //   ),
-    // },
-    // {
-    //   title: "Проверка",
-    //   value: "check",
-    //   content: (
-    //     <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900 flex justify-between flex-col">
-    //       <p className=" pb-4">Проверка контрольных соотношений</p>
-    //       <p className=" font-light text-lg">
-    //         В этой вкладке вы можете проверить контрольные соотношения в отчете.
-    //         <br /> Краткое описание функций:
-    //         <br />
-    //         1. Проверить - проверяет контрольные соотношения в отчете. <br />
-    //       </p>
-    //       <div className="flex">
-    //         <Drawer
-    //           open={errors?.length > 0}
-    //           onClose={() => {
-    //             setErrors(null);
-    //           }}
-    //         >
-    //           <DrawerTrigger>
-    //             <button
-    //               className="px-6 py-3 rounded-md border border-black bg-white text-neutral-700 text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200 mr-4"
-    //               onClick={() => {
-    //                 check(obj).then((data) => {
-    //                   console.log(data);
-    //                   setErrors(data);
-    //                   if (errors?.length === 0) {
-    //                     toast.success("Ошибки не найдены");
-    //                   }
-    //                 });
-    //               }}
-    //             >
-    //               Проверить
-    //             </button>
-    //           </DrawerTrigger>
-    //           <DrawerContent
-    //             className="w-3/4 mx-auto"
-    //             style={{
-    //               backdropFilter: "blur(10px)",
-    //             }}
-    //           >
-    //             <DrawerClose>
-    //               <span className="text-white">Закрыть</span>
-    //             </DrawerClose>
-    //             <DrawerHeader className="flex flex-col justify-center items-center">
-    //               <DrawerTitle>Ошибки</DrawerTitle>
-    //               <DrawerDescription>
-    //                 В данном разделе вы можете увидеть ошибки в отчете
-    //               </DrawerDescription>
-    //             </DrawerHeader>
-    //             <div className="w-full p-4">
-    //               {errors?.length > 0 ? (
-    //                 <div className="overflow-x-auto">
-    //                   {errors.map((item: any, index: number) => (
-    //                     <>
-    //                       <div key={index} className="flex flex-col py-5">
-    //                         <div className="flex flex-row justify-between items-center w-full">
-    //                           <LinkPreview text={item.additionalInfo}>
-    //                             <p className="font-semibold text-base">
-    //                               {item.message}
-    //                             </p>
-    //                           </LinkPreview>
-    //                           <button
-    //                             className="px-6 py-3 text-xs shadow-[inset_0_0_0_2px_#616467] text-black rounded-md tracking-widest uppercase font-bold bg-transparent hover:bg-[#616467] hover:text-white dark:text-neutral-200 transition duration-200"
-    //                             onClick={() => {
-    //                               item.function(obj).then((newObj: any) => {
-    //                                 setObj(newObj);
-    //                                 check(obj).then((data) => {
-    //                                   console.log(data);
-    //                                   setErrors(data);
-    //                                   toast.success("Ошибка исправлена");
-    //                                 });
-    //                               });
-    //                             }}
-    //                           >
-    //                             Исправить
-    //                           </button>
-    //                         </div>
-    //                         <div className="w-full border-b border-slate-500 mt-3"></div>
-    //                       </div>
-    //                     </>
-    //                   ))}
-    //                 </div>
-    //               ) : (
-    //                 <p>Ошибок нет</p>
-    //               )}
-    //             </div>
-    //           </DrawerContent>
-    //         </Drawer>
-    //       </div>
-    //     </div>
-    //   ),
-    // },
   ];
-
-  React.useEffect(() => {
-    console.log(obj);
-  }, [obj]);
 
   React.useMemo(() => {
     const kppSet = new Set(tableData.map((item) => item.KPP));
