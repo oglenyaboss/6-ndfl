@@ -798,7 +798,6 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
               duration: 1,
               ease: "easeInOut",
               times: [0, 0.5, 1],
-              loop: Infinity,
               repeatDelay: 1,
               repeat: Infinity,
             }}
@@ -847,7 +846,6 @@ const SecondVersion: React.FC<HomeProps> = ({ changeVersion }) => {
                 duration: 1,
                 ease: "easeInOut",
                 times: [0, 0.5, 1],
-                loop: Infinity,
                 repeatDelay: 1,
                 repeat: Infinity,
               }}

@@ -425,7 +425,6 @@ const Home: React.FC<HomeProps> = ({ changeVersion }) => {
                 transition={{
                   duration: 2,
                   ease: "easeInOut",
-                  loop: Infinity,
                   repeat: Infinity,
                 }}
               >
